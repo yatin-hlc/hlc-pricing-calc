@@ -1921,6 +1921,15 @@
               </div>
             ` : ''}
 
+            <div style="display:flex;justify-content:flex-end;margin-top:0.875rem;padding-top:0.75rem;border-top:1px solid var(--border-light);">
+              <button onclick="printLog('${log.id}')"
+                style="background:transparent;border:1px solid var(--border-medium);border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;color:var(--text-secondary);font-size:0.75rem;font-weight:600;transition:all 0.2s;display:flex;align-items:center;gap:0.375rem;"
+                onmouseover="this.style.background='var(--accent-coffee)';this.style.color='#fff';this.style.borderColor='var(--accent-coffee)';"
+                onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-medium)';">
+                🖨 Print / Save PDF
+              </button>
+            </div>
+
           </div>
         `;
       }).join('');
@@ -1945,6 +1954,87 @@
       const totalPages = Math.ceil(filtered.length / LOGS_PER_PAGE);
       currentLogPage   = Math.max(1, Math.min(totalPages, currentLogPage + dir));
       renderLogs();
+    }
+
+    function printLog(id) {
+      var log = logs.find(function(l) { return l.id === id; });
+      if (!log) return;
+
+      var date      = new Date(log.timestamp);
+      var isReverse = log.calculationMode === 'reverse';
+      var is250     = (log.bagSize || '1kg') === '250g';
+      var cfg       = log.settings || {};
+      var priceLbl  = isReverse ? 'Target Price' : 'Final Price';
+      var bulkUnit  = is250 ? 'bags' : 'kg';
+      var gcCost    = log.greenCoffeeCost || 0;
+      var lossAmt   = gcCost * ((cfg.loss || 0) / 100);
+      var effCost   = gcCost + lossAmt;
+      var commPct   = cfg.commission || 0;
+      var commAmt   = (log.finalPrice || 0) * commPct / 100;
+      var shipCost  = cfg.shipping || 0;
+      var dateStr   = date.toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
+      var bagLabel  = is250 ? '250g' : '1kg';
+      var modeLabel = isReverse ? 'Target Pricing' : 'Set Premium';
+
+      function row(label, value, bold, topBorder) {
+        var border = topBorder ? '2px solid #333' : '1px solid #eee';
+        var color  = bold ? '#111' : '#555';
+        var fw     = bold ? '700' : '400';
+        var trStyle = (bold ? 'font-weight:700;' : '') + (topBorder ? 'border-top:2px solid #333;' : '');
+        return '<tr style="' + trStyle + '">'
+          + '<td style="padding:5px 8px;color:' + color + ';border-top:' + border + ';">' + label + '</td>'
+          + '<td style="padding:5px 8px;text-align:right;font-weight:' + fw + ';border-top:' + border + ';">' + value + '</td>'
+          + '</tr>';
+      }
+
+      var rows = '';
+      rows += row('Green Coffee (₹/kg)', '₹' + (log.greenCoffeePrice||0).toFixed(2));
+      if (is250) rows += row('Green Coffee for 250g', '₹' + gcCost.toFixed(2));
+      rows += row('Roasting Loss (' + (cfg.loss||0) + '%)', '₹' + lossAmt.toFixed(2));
+      rows += row('Effective Green Cost', '₹' + effCost.toFixed(2), true);
+      rows += row('Logistics', '₹' + (cfg.logistics||0).toFixed(2));
+      rows += row('Handling & Storage', '₹' + (cfg.handling||0).toFixed(2));
+      rows += row('Roasting & Gas', '₹' + (cfg.roasting||0).toFixed(2));
+      rows += row('Packaging', '₹' + (cfg.packaging||0).toFixed(2));
+      if (shipCost > 0) rows += row('Website Shipping', '₹' + shipCost.toFixed(2));
+      rows += row('Base Cost', '₹' + (log.totalBase||0).toFixed(2), true);
+      if (commPct > 0) rows += row('Shopify Commission (' + commPct.toFixed(1) + '%)', '₹' + commAmt.toFixed(2));
+      rows += row('Margin %', (log.premiumPercent||0).toFixed(1) + '%');
+      rows += row('HLC Premium', '₹' + (log.premiumAmount||0).toFixed(2));
+      rows += row(priceLbl, '₹' + (log.finalPrice||0).toFixed(2), true, true);
+      if (log.bulkQuantity > 0) {
+        var bulkVal = (log.finalPrice * log.bulkQuantity).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        rows += row('Bulk Qty (' + log.bulkQuantity + ' ' + bulkUnit + ')', '₹' + bulkVal);
+      }
+
+      var html = '<!DOCTYPE html>'
+        + '<html><head><meta charset="UTF-8">'
+        + '<title>HLC Pricing - ' + log.skuName + '</title>'
+        + '<style>'
+        + 'body{font-family:Arial,sans-serif;font-size:13px;color:#111;padding:32px;max-width:480px;margin:0 auto}'
+        + 'h1{font-size:18px;margin:0 0 2px;color:#3D2B1F}'
+        + '.sub{font-size:11px;color:#888;margin-bottom:16px}'
+        + 'table{width:100%;border-collapse:collapse;margin-top:10px}'
+        + '.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#f0ede8;margin-left:6px}'
+        + '@media print{body{padding:16px}}'
+        + '</style>'
+        + '</head><body>'
+        + '<h1>Half Light Coffee Roasters</h1>'
+        + '<div class="sub">Pricing Calculator &nbsp;&middot;&nbsp; ' + dateStr + '</div>'
+        + '<hr style="border:none;border-top:2px solid #3D2B1F;margin:0 0 14px">'
+        + '<div style="font-size:14px;font-weight:700;margin-bottom:4px;">' + log.skuName
+        + ' <span class="badge">' + bagLabel + '</span>'
+        + ' <span class="badge">' + modeLabel + '</span></div>'
+        + '<table><tbody>' + rows + '</tbody></table>'
+        + '<div style="margin-top:20px;font-size:10px;color:#aaa;text-align:center;">Half Light Coffee Roasters &mdash; Pricing Calculator</div>'
+        + '</body></html>';
+
+      var w = window.open('', '_blank', 'width=560,height=720');
+      if (!w) { alert('Please allow popups for this page to use Print / Save PDF.'); return; }
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(function() { w.print(); }, 400);
     }
 
     function exportLogs() {
