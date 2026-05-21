@@ -816,6 +816,28 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Bulk Price Tiers -->
+              <div style="margin-top:1rem;">
+                <button type="button" id="bulkTiersToggle" onclick="toggleBulkTiers('1kg')"
+                  style="width:100%;padding:0.5rem;border:1px dashed var(--border-medium);border-radius:8px;background:transparent;font-family:inherit;font-size:0.8125rem;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.2s;">
+                  📦 Show Bulk Price Tiers
+                </button>
+                <div id="bulkTiersPanel" style="display:none;margin-top:0.75rem;">
+                  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+                    <thead>
+                      <tr style="border-bottom:2px solid var(--border-medium);">
+                        <th style="text-align:left;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Quantity</th>
+                        <th style="text-align:center;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Discount %</th>
+                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / kg</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bulkTiersBody"></tbody>
+                  </table>
+                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Discount % is editable — changes save automatically.</div>
+                </div>
+              </div>
+            </div>
             </div>
 
           </div>
@@ -1010,6 +1032,27 @@
                     <span style="font-weight:700;font-size:32px;font-variant-numeric:tabular-nums;" id="displayHlcPremium250">₹0.00</span>
                   </div>
                 </div>
+
+              <!-- Bulk Price Tiers 250g -->
+              <div style="margin-top:1rem;">
+                <button type="button" id="bulkTiersToggle250" onclick="toggleBulkTiers('250g')"
+                  style="width:100%;padding:0.5rem;border:1px dashed var(--border-medium);border-radius:8px;background:transparent;font-family:inherit;font-size:0.8125rem;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.2s;">
+                  📦 Show Bulk Price Tiers
+                </button>
+                <div id="bulkTiersPanel250" style="display:none;margin-top:0.75rem;">
+                  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+                    <thead>
+                      <tr style="border-bottom:2px solid var(--border-medium);">
+                        <th style="text-align:left;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Quantity</th>
+                        <th style="text-align:center;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Discount %</th>
+                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / bag</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bulkTiersBody250"></tbody>
+                  </table>
+                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Discount % is editable — changes save automatically.</div>
+                </div>
+              </div>
               </div>
             </div>
 
@@ -1529,6 +1572,12 @@
     let pkgBreakdown1kg  = loadData('pkgBreakdown1kg',  { label:10, batch:10, bag:30, box:20, storage:20, misc:4  });
     let pkgBreakdown250g = loadData('pkgBreakdown250g', { label:10, batch:10, bag:25, box:0,  storage:5,  misc:5  });
 
+    // Bulk tier discounts (%) — shared policy across both bag sizes
+    let bulkTierDiscounts = loadData('bulkTierDiscounts', { tier1: 5, tier2: 8, tier3: 12 });
+    // tier1 = 5-10 units, tier2 = 11-24 units, tier3 = 25+ units
+    let bulkTiersOn    = false;   // 1kg toggle state
+    let bulkTiersOn250 = false;   // 250g toggle state
+
     // ============================================
     // PACKAGING BREAKDOWN HELPERS
     // ============================================
@@ -1795,6 +1844,9 @@
       document.getElementById('bulkQuantityDisplayGreen'+ sfx).textContent = bulkQty.toFixed(0);
       document.getElementById('bulkOrderValue'          + sfx).textContent = `₹${(finalPrice * bulkQty).toLocaleString('en-IN', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
       document.getElementById('bulkPremiumValue'        + sfx).textContent = `₹${(premiumAmount * bulkQty).toLocaleString('en-IN', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+
+      // Refresh bulk tiers if visible
+      renderBulkTiers(size);
 
       return { greenCoffeePrice, greenCoffeeCost, premiumPercent, totalBase, premiumAmount, finalPrice };
     }
@@ -2362,6 +2414,70 @@
       if (currentLogPage > newTotal) currentLogPage = newTotal;
       renderLogs();
       showToast('Entry deleted', 'success');
+    }
+
+    // ============================================
+    // BULK PRICE TIERS
+    // ============================================
+
+    const BULK_TIERS = [
+      { label: '1–4 units (standard)', tierKey: null },
+      { label: '5–10 units',           tierKey: 'tier1' },
+      { label: '11–24 units',          tierKey: 'tier2' },
+      { label: '25+ units',            tierKey: 'tier3' }
+    ];
+
+    function toggleBulkTiers(size) {
+      const sfx = size === '250g' ? '250' : '';
+      if (size === '250g') bulkTiersOn250 = !bulkTiersOn250; else bulkTiersOn = !bulkTiersOn;
+      const on     = size === '250g' ? bulkTiersOn250 : bulkTiersOn;
+      const btn    = document.getElementById('bulkTiersToggle' + sfx);
+      const panel  = document.getElementById('bulkTiersPanel' + sfx);
+      btn.textContent  = on ? '📦 Hide Bulk Price Tiers' : '📦 Show Bulk Price Tiers';
+      btn.style.borderStyle     = on ? 'solid'   : 'dashed';
+      btn.style.borderColor     = on ? 'var(--accent-coffee)' : 'var(--border-medium)';
+      btn.style.color           = on ? 'var(--accent-coffee)' : 'var(--text-secondary)';
+      panel.style.display = on ? 'block' : 'none';
+      if (on) renderBulkTiers(size);
+    }
+
+    function renderBulkTiers(size) {
+      const sfx      = size === '250g' ? '250' : '';
+      const on       = size === '250g' ? bulkTiersOn250 : bulkTiersOn;
+      if (!on) return;
+
+      const priceEl  = document.getElementById('displayFinalPrice' + sfx);
+      const baseStr  = priceEl ? priceEl.textContent.replace('₹', '').replace(/,/g, '') : '0';
+      const basePrice = parseFloat(baseStr) || 0;
+      const unit      = size === '250g' ? 'bag' : 'kg';
+      const tbody     = document.getElementById('bulkTiersBody' + sfx);
+      if (!tbody) return;
+
+      tbody.innerHTML = BULK_TIERS.map(tier => {
+        const disc   = tier.tierKey ? (bulkTierDiscounts[tier.tierKey] || 0) : 0;
+        const price  = basePrice * (1 - disc / 100);
+        const isBase = !tier.tierKey;
+        const discCell = isBase
+          ? '<td style="text-align:center;padding:0.45rem 0.5rem;color:var(--text-tertiary);">—</td>'
+          : '<td style="text-align:center;padding:0.45rem 0.5rem;">'
+            + '<input type="number" min="0" max="50" step="0.5" value="' + disc + '" '
+            + 'style="width:60px;text-align:center;border:1px solid var(--border-medium);border-radius:4px;padding:0.2rem 0.3rem;font-size:0.8rem;font-family:inherit;background:var(--bg-secondary);color:var(--text-primary);" '
+            + 'onchange="updateTierDiscount(\'' + tier.tierKey + '\',this.value,\'' + size + '\')" />'
+            + '</td>';
+        return '<tr style="border-bottom:1px solid var(--border-light);">'
+          + '<td style="padding:0.45rem 0.5rem;color:' + (isBase ? 'var(--text-secondary)' : 'var(--text-primary)') + ';font-weight:' + (isBase ? '400' : '500') + ';">' + tier.label + '</td>'
+          + discCell
+          + '<td style="text-align:right;padding:0.45rem 0.5rem;font-weight:' + (isBase ? '500' : '700') + ';color:' + (isBase ? 'var(--text-secondary)' : 'var(--accent-coffee)') + ';font-variant-numeric:tabular-nums;">'
+          + '₹' + price.toFixed(2) + '/' + unit
+          + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    function updateTierDiscount(tierKey, value, size) {
+      bulkTierDiscounts[tierKey] = parseFloat(value) || 0;
+      saveData('bulkTierDiscounts', bulkTierDiscounts);
+      renderBulkTiers(size);
     }
 
     // ============================================
