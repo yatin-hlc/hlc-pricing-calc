@@ -698,12 +698,14 @@
                 <textarea id="versionNote" placeholder="Add a note…" rows="2"
                   style="width:100%;margin-bottom:0.625rem;padding:0.5rem 0.75rem;border:1px solid var(--border-medium);border-radius:8px;font-family:inherit;font-size:0.8125rem;color:var(--text-primary);background:var(--bg-secondary);resize:none;box-sizing:border-box;transition:border-color 0.2s;"
                   onfocus="this.style.borderColor='var(--accent-coffee)'" onblur="this.style.borderColor='var(--border-medium)'"></textarea>
-                <div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;">
-                  <span style="font-size:0.8rem;color:var(--text-tertiary);align-self:center;white-space:nowrap;">Channel:</span>
+                <div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;align-items:center;">
+                  <span style="font-size:0.8rem;color:var(--text-tertiary);white-space:nowrap;">Channel <span style="color:#C0392B;">*</span></span>
                   <button type="button" id="channelRetail" onclick="setChannel('retail','1kg')"
                     style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">Retail</button>
                   <button type="button" id="channelB2B" onclick="setChannel('b2b','1kg')"
                     style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">B2B</button>
+                  <button type="button" id="channelOthers" onclick="setChannel('others','1kg')"
+                    style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">Others</button>
                 </div>
                 <button class="btn btn-success" id="saveVersionBtn" style="width:100%;margin-bottom:0.75rem;" disabled><span>💾</span> Save Version</button>
                 <button class="btn btn-outline"  id="printPdfBtn"    style="width:100%;" disabled><span>📄</span> Print / Save as PDF</button>
@@ -881,12 +883,14 @@
                 <textarea id="versionNote250" placeholder="Add a note…" rows="2"
                   style="width:100%;margin-bottom:0.625rem;padding:0.5rem 0.75rem;border:1px solid var(--border-medium);border-radius:8px;font-family:inherit;font-size:0.8125rem;color:var(--text-primary);background:var(--bg-secondary);resize:none;box-sizing:border-box;transition:border-color 0.2s;"
                   onfocus="this.style.borderColor='var(--accent-coffee)'" onblur="this.style.borderColor='var(--border-medium)'"></textarea>
-                <div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;">
-                  <span style="font-size:0.8rem;color:var(--text-tertiary);align-self:center;white-space:nowrap;">Channel:</span>
+                <div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;align-items:center;">
+                  <span style="font-size:0.8rem;color:var(--text-tertiary);white-space:nowrap;">Channel <span style="color:#C0392B;">*</span></span>
                   <button type="button" id="channelRetail250" onclick="setChannel('retail','250g')"
                     style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">Retail</button>
                   <button type="button" id="channelB2B250" onclick="setChannel('b2b','250g')"
                     style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">B2B</button>
+                  <button type="button" id="channelOthers250" onclick="setChannel('others','250g')"
+                    style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">Others</button>
                 </div>
                 <button class="btn btn-success" id="saveVersionBtn250" style="width:100%;margin-bottom:0.75rem;" disabled><span>💾</span> Save Version</button>
                 <button class="btn btn-outline"  id="printPdfBtn250"    style="width:100%;" disabled><span>📄</span> Print / Save as PDF</button>
@@ -1074,6 +1078,7 @@
               <option value="">All Channels</option>
               <option value="retail">Retail</option>
               <option value="b2b">B2B</option>
+              <option value="others">Others</option>
             </select>
             <button class="btn btn-outline" id="exportLogsBtn"><span>📥</span> Export CSV</button>
           </div>
@@ -1683,27 +1688,25 @@
     }
 
     function setChannel(value, size) {
-      const sfx     = size === '250g' ? '250' : '';
-      const retailId = 'channelRetail' + sfx;
-      const b2bId    = 'channelB2B'    + sfx;
-      const retailBtn = document.getElementById(retailId);
-      const b2bBtn    = document.getElementById(b2bId);
-      if (!retailBtn || !b2bBtn) return;
-
-      const isActive = (size === '250g' ? channelSelected250 : channelSelected) === value;
-      const newVal   = isActive ? '' : value;  // clicking active = deselect
-
+      const sfx       = size === '250g' ? '250' : '';
+      const isActive  = (size === '250g' ? channelSelected250 : channelSelected) === value;
+      const newVal    = isActive ? '' : value;   // clicking active = deselect
       if (size === '250g') channelSelected250 = newVal; else channelSelected = newVal;
 
-      const retailOn = newVal === 'retail';
-      const b2bOn    = newVal === 'b2b';
+      const colors = {
+        retail: { bg: '#EA580C', border: '#EA580C' },
+        b2b:    { bg: '#3B82F6', border: '#3B82F6' },
+        others: { bg: '#6B7280', border: '#6B7280' }
+      };
 
-      retailBtn.style.background   = retailOn ? 'var(--accent-green)'       : 'transparent';
-      retailBtn.style.color        = retailOn ? '#fff'                       : 'var(--text-secondary)';
-      retailBtn.style.borderColor  = retailOn ? 'var(--accent-green)'       : 'var(--border-medium)';
-      b2bBtn.style.background      = b2bOn    ? 'var(--accent-blue,#3B82F6)': 'transparent';
-      b2bBtn.style.color           = b2bOn    ? '#fff'                      : 'var(--text-secondary)';
-      b2bBtn.style.borderColor     = b2bOn    ? 'var(--accent-blue,#3B82F6)': 'var(--border-medium)';
+      ['retail', 'b2b', 'others'].forEach(ch => {
+        const btn = document.getElementById('channel' + ch.charAt(0).toUpperCase() + ch.slice(1) + sfx);
+        if (!btn) return;
+        const on = newVal === ch;
+        btn.style.background  = on ? colors[ch].bg     : 'transparent';
+        btn.style.color       = on ? '#fff'             : 'var(--text-secondary)';
+        btn.style.borderColor = on ? colors[ch].border  : 'var(--border-medium)';
+      });
     }
 
     function saveVersion(size = '1kg') {
@@ -1715,13 +1718,15 @@
       const calc = calculate(size);
       if (!calc) { showToast('Please fill in all required fields', 'warning'); return; }
 
+      const channel = size === '250g' ? channelSelected250 : channelSelected;
+      if (!channel) { showToast('Please select a channel (Retail, B2B or Others)', 'warning'); return; }
+
       const mode        = size === '250g' ? calculationMode250 : calculationMode;
       const targetPrice = mode === 'reverse' ? parseFloat(document.getElementById('targetPrice' + sfx).value) : null;
       const bulkQty     = parseFloat(document.getElementById('bulkQuantity' + sfx).value) || 0;
 
       const noteEl  = document.getElementById('versionNote' + sfx);
       const note    = noteEl ? noteEl.value.trim() : '';
-      const channel = size === '250g' ? channelSelected250 : channelSelected;
 
       const version = {
         id: Date.now().toString(),
@@ -1931,9 +1936,11 @@
           ? `<span class="badge" style="background:var(--accent-green-light);color:var(--accent-green);">Target Pricing</span>`
           : '';
         const channelBadge = log.channel === 'retail'
-          ? `<span class="badge" style="background:#DCFCE7;color:#166534;border:1px solid #BBF7D0;">Retail</span>`
+          ? `<span class="badge" style="background:#FFEDD5;color:#9A3412;border:1px solid #FED7AA;">Retail</span>`
           : log.channel === 'b2b'
           ? `<span class="badge" style="background:#DBEAFE;color:#1E40AF;border:1px solid #BFDBFE;">B2B</span>`
+          : log.channel === 'others'
+          ? `<span class="badge" style="background:#F3F4F6;color:#4B5563;border:1px solid #E5E7EB;">Others</span>`
           : '';
 
         const row = (label, value, opts = {}) => {
