@@ -1646,9 +1646,12 @@
     let pkgBreakdown1kg  = loadData('pkgBreakdown1kg',  { label:10, batch:10, bag:30, box:20, storage:20, misc:4  });
     let pkgBreakdown250g = loadData('pkgBreakdown250g', { label:10, batch:10, bag:25, box:0,  storage:5,  misc:5  });
 
-    // Bulk tier discounts (%) — shared policy across both bag sizes
-    let bulkTierDiscounts = loadData('bulkTierDiscounts', { tier1: 5, tier2: 8, tier3: 12 });
-    // tier1 = 5-10 units, tier2 = 11-24 units, tier3 = 25+ units
+    // Bulk tier discounts — 1 kg
+    let bulkTierDiscounts    = loadData('bulkTierDiscounts',    { tier1: 5, tier2: 8, tier3: 12 });
+    // tier1=5–10 units, tier2=11–24 units, tier3=25+ units
+    // Bulk tier discounts — 250 g
+    let bulkTierDiscounts250 = loadData('bulkTierDiscounts250', { tier1: 10, tier2: 15 });
+    // tier1=12+ bags (3 kg+), tier2=20+ bags (5 kg+)
     let bulkTiersOn    = false;   // 1kg toggle state
     let bulkTiersOn250 = false;   // 250g toggle state
 
@@ -2750,11 +2753,16 @@
     // BULK PRICE TIERS
     // ============================================
 
-    const BULK_TIERS = [
+    const BULK_TIERS_1KG = [
       { label: '1–4 units (standard)', tierKey: null },
       { label: '5–10 units',           tierKey: 'tier1' },
       { label: '11–24 units',          tierKey: 'tier2' },
       { label: '25+ units',            tierKey: 'tier3' }
+    ];
+    const BULK_TIERS_250G = [
+      { label: '1–11 bags (standard)', tierKey: null },
+      { label: '12+ bags  (3 kg+)',    tierKey: 'tier1' },
+      { label: '20+ bags  (5 kg+)',    tierKey: 'tier2' }
     ];
 
     function toggleBulkTiers(size) {
@@ -2772,19 +2780,22 @@
     }
 
     function renderBulkTiers(size) {
-      const sfx      = size === '250g' ? '250' : '';
-      const on       = size === '250g' ? bulkTiersOn250 : bulkTiersOn;
+      const sfx       = size === '250g' ? '250' : '';
+      const on        = size === '250g' ? bulkTiersOn250 : bulkTiersOn;
       if (!on) return;
 
-      const priceEl  = document.getElementById('displayFinalPrice' + sfx);
-      const baseStr  = priceEl ? priceEl.textContent.replace('₹', '').replace(/,/g, '') : '0';
+      const priceEl   = document.getElementById('displayFinalPrice' + sfx);
+      const baseStr   = priceEl ? priceEl.textContent.replace('₹', '').replace(/,/g, '') : '0';
       const basePrice = parseFloat(baseStr) || 0;
       const unit      = size === '250g' ? 'bag' : 'kg';
       const tbody     = document.getElementById('bulkTiersBody' + sfx);
       if (!tbody) return;
 
-      tbody.innerHTML = BULK_TIERS.map(tier => {
-        const disc   = tier.tierKey ? (bulkTierDiscounts[tier.tierKey] || 0) : 0;
+      const tiers    = size === '250g' ? BULK_TIERS_250G : BULK_TIERS_1KG;
+      const discObj  = size === '250g' ? bulkTierDiscounts250 : bulkTierDiscounts;
+
+      tbody.innerHTML = tiers.map(tier => {
+        const disc   = tier.tierKey ? (discObj[tier.tierKey] || 0) : 0;
         const price  = basePrice * (1 - disc / 100);
         const isBase = !tier.tierKey;
         const discCell = isBase
@@ -2805,8 +2816,13 @@
     }
 
     function updateTierDiscount(tierKey, value, size) {
-      bulkTierDiscounts[tierKey] = parseFloat(value) || 0;
-      saveData('bulkTierDiscounts', bulkTierDiscounts);
+      if (size === '250g') {
+        bulkTierDiscounts250[tierKey] = parseFloat(value) || 0;
+        saveData('bulkTierDiscounts250', bulkTierDiscounts250);
+      } else {
+        bulkTierDiscounts[tierKey] = parseFloat(value) || 0;
+        saveData('bulkTierDiscounts', bulkTierDiscounts);
+      }
       renderBulkTiers(size);
     }
 
@@ -2828,8 +2844,10 @@
       const basePrice = parseFloat(log.finalPrice) || 0;
       const unit      = log.bagSize === '250g' ? 'bag' : 'kg';
 
-      const rows = BULK_TIERS.map(tier => {
-        const disc  = tier.tierKey ? (bulkTierDiscounts[tier.tierKey] || 0) : 0;
+      const logTiers   = log.bagSize === '250g' ? BULK_TIERS_250G : BULK_TIERS_1KG;
+      const logDiscObj = log.bagSize === '250g' ? bulkTierDiscounts250 : bulkTierDiscounts;
+      const rows = logTiers.map(tier => {
+        const disc  = tier.tierKey ? (logDiscObj[tier.tierKey] || 0) : 0;
         const price = basePrice * (1 - disc / 100);
         const isBase = !tier.tierKey;
         return '<tr style="border-bottom:1px solid var(--border-light);">'
@@ -3274,6 +3292,8 @@
         if (data.producers)        producers        = Object.values(data.producers);
         if (data.skus)             skus             = Object.values(data.skus);
         if (data.cropEntries)      cropEntries      = Object.values(data.cropEntries);
+        if (data.bulkTierDiscounts)    bulkTierDiscounts    = data.bulkTierDiscounts;
+        if (data.bulkTierDiscounts250) bulkTierDiscounts250 = data.bulkTierDiscounts250;
         if (data.logs)             logs             = Object.values(data.logs)
                                                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                                                        .slice(0, MAX_LOGS);
