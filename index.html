@@ -1699,8 +1699,9 @@
         others: { bg: '#6B7280', border: '#6B7280' }
       };
 
+      const idMap = { retail: 'channelRetail', b2b: 'channelB2B', others: 'channelOthers' };
       ['retail', 'b2b', 'others'].forEach(ch => {
-        const btn = document.getElementById('channel' + ch.charAt(0).toUpperCase() + ch.slice(1) + sfx);
+        const btn = document.getElementById(idMap[ch] + sfx);
         if (!btn) return;
         const on = newVal === ch;
         btn.style.background  = on ? colors[ch].bg     : 'transparent';
