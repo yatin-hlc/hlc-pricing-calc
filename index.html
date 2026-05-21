@@ -378,11 +378,15 @@
     tbody tr:hover { background: var(--bg-tertiary); }
 
     .status-badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+    .status-live     { background: var(--accent-green-light); color: var(--accent-green); }
     .status-active   { background: var(--accent-green-light); color: var(--accent-green); }
     .status-draft    { background: var(--accent-amber-light); color: #8B6914; }
+    .status-paused   { background: #DBEAFE; color: #1E40AF; }
     .status-archived { background: var(--bg-tertiary); color: var(--text-tertiary); }
 
     .action-btn { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+    .action-btn-danger { color: #C0392B; }
+    .action-btn-danger:hover { color: #922B21; }
     .action-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
     .log-filters { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
@@ -1018,34 +1022,50 @@
       <!--  COFFEE SKUs VIEW                         -->
       <!-- ══════════════════════════════════════════ -->
       <div id="skus" class="view">
-        <div class="card">
-          <div class="sku-header">
+
+        <!-- ── Producers ── -->
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="sku-header" style="margin-bottom:1.25rem;">
             <div>
-              <h2 class="card-title">Coffee SKU Management</h2>
-              <p class="card-subtitle">Manage all product Coffee SKUs</p>
+              <h2 class="card-title">Producers / Plantations</h2>
+              <p class="card-subtitle">Top-level classification for all coffees</p>
             </div>
-            <button class="btn btn-primary" id="addSkuBtn">+ Add New Coffee SKU</button>
+            <button class="btn btn-primary" id="addProducerBtn">+ Add Producer</button>
           </div>
+          <div style="background:var(--bg-tertiary);padding:0.75rem 1rem;border-radius:8px;margin-bottom:1.25rem;border-left:3px solid var(--accent-coffee);">
+            <div style="display:flex;gap:1.25rem;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;"><span class="status-badge status-live">Live</span><span style="color:var(--text-secondary);">Active, SKUs available in calculator</span></div>
+              <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;"><span class="status-badge status-draft">Draft</span><span style="color:var(--text-secondary);">Work in progress</span></div>
+              <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;"><span class="status-badge status-paused">Paused</span><span style="color:var(--text-secondary);">Temporarily hidden from calculator</span></div>
+              <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;"><span class="status-badge status-archived">Archived</span><span style="color:var(--text-secondary);">No longer active, kept for records</span></div>
+            </div>
+          </div>
+          <div id="producerTableContainer">
+            <table id="producerTable">
+              <thead><tr><th>S.No.</th><th>Producer / Plantation</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="producerTableBody"></tbody>
+            </table>
+          </div>
+        </div>
 
-          <div class="search-box" style="margin-bottom:1.5rem;">
+        <!-- ── Coffee SKUs ── -->
+        <div class="card">
+          <div class="sku-header" style="margin-bottom:1.25rem;">
+            <div>
+              <h2 class="card-title">Coffee SKUs</h2>
+              <p class="card-subtitle">Each crop by producer, year and processing</p>
+            </div>
+            <button class="btn btn-primary" id="addSkuBtn">+ Add Coffee SKU</button>
+          </div>
+          <div class="search-box" style="margin-bottom:1.25rem;">
             <span class="search-icon">🔍</span>
-            <input type="text" id="skuSearch" placeholder="Search Coffee SKUs...">
+            <input type="text" id="skuSearch" placeholder="Search by producer, name or crop year…">
           </div>
-
-          <div style="background:var(--bg-tertiary);padding:1rem;border-radius:8px;margin-bottom:1.5rem;border-left:3px solid var(--accent-coffee);">
-            <div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);margin-bottom:0.5rem;">Status Legends:</div>
-            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8125rem;"><span class="status-badge status-active">Active</span><span style="color:var(--text-secondary);">Available for pricing calculations</span></div>
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8125rem;"><span class="status-badge status-draft">Draft</span><span style="color:var(--text-secondary);">Work in progress, not available yet</span></div>
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8125rem;"><span class="status-badge status-archived">Archived</span><span style="color:var(--text-secondary);">No longer available, kept for records</span></div>
-            </div>
-          </div>
-
           <div id="skuTableContainer">
             <table id="skuTable">
               <thead>
                 <tr>
-                  <th>S.No.</th><th>SKU Code</th><th>Coffee SKU Name</th><th>Description</th><th>Base Price</th><th>Status</th><th>Actions</th>
+                  <th>S.No.</th><th>Producer</th><th>SKU Name</th><th>Crop</th><th>Base Green ₹/kg</th><th>Final Release ₹/kg</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody id="skuTableBody"></tbody>
@@ -1102,60 +1122,42 @@
       <!-- ══════════════════════════════════════════ -->
       <div id="pricetracker" class="view">
         <div class="card" style="margin-bottom:1rem;">
-          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;align-items:start;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
             <div>
-              <label style="margin-bottom:0.35rem;">Coffee SKU</label>
-              <select id="ptSkuFilter" style="width:100%;">
-                <option value="">— Select a SKU —</option>
+              <label style="margin-bottom:0.35rem;">Producer / Plantation</label>
+              <select id="ptProducerFilter" style="width:100%;">
+                <option value="">— Select a producer —</option>
               </select>
             </div>
             <div>
-              <label style="margin-bottom:0.35rem;">Bag Size</label>
-              <div style="display:flex;gap:0.5rem;">
-                <button type="button" id="ptSize1kg"  onclick="setPtSize('1kg')"
-                  style="padding:0.4rem 1rem;border:1px solid var(--accent-coffee);border-radius:6px;background:var(--accent-coffee);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">1 kg</button>
-                <button type="button" id="ptSize250g" onclick="setPtSize('250g')"
-                  style="padding:0.4rem 1rem;border:1px solid var(--border-medium);border-radius:6px;background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">250 g</button>
-              </div>
-            </div>
-            <div>
-              <label style="margin-bottom:0.35rem;">Channel</label>
-              <select id="ptChannelFilter" style="width:100%;">
-                <option value="">All</option>
-                <option value="retail">Retail</option>
-                <option value="b2b">B2B</option>
-                <option value="others">Others</option>
+              <label style="margin-bottom:0.35rem;">SKU Name <span style="font-weight:400;color:var(--text-tertiary);">— optional filter</span></label>
+              <select id="ptSkuNameFilter" style="width:100%;">
+                <option value="">All SKUs</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div class="card" style="position:relative;min-height:320px;" id="ptChartCard">
-          <!-- empty state -->
+        <div class="card" style="position:relative;min-height:320px;">
           <div id="ptEmptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:0.5rem;color:var(--text-tertiary);">
             <span style="font-size:2rem;">📈</span>
-            <span style="font-size:0.9rem;">Select a SKU to see its price history</span>
+            <span style="font-size:0.9rem;">Select a producer to see their price trends</span>
           </div>
           <canvas id="ptChart" style="display:none;width:100%;"></canvas>
         </div>
 
-        <!-- Stats row -->
-        <div id="ptStats" style="display:none;margin-top:1rem;display:none;">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;">
+        <div id="ptStats" style="display:none;margin-top:1rem;">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;">
             <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">First Price</div>
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Earliest Base Price</div>
               <div id="ptStatFirst" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
             </div>
             <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Latest Price</div>
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Latest Base Price</div>
               <div id="ptStatLatest" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
             </div>
             <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Change</div>
-              <div id="ptStatChange" style="font-size:1.1rem;font-weight:700;">—</div>
-            </div>
-            <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Data Points</div>
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">SKUs Tracked</div>
               <div id="ptStatCount" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
             </div>
           </div>
@@ -1343,38 +1345,85 @@
     </div>
   </div>
 
+  <!-- Producer Modal -->
+  <div class="modal-overlay" id="producerModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="producerModalTitle">Add Producer</h3>
+        <button class="modal-close" id="closeProducerModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="producerName" class="required">Producer / Plantation Name</label>
+          <input type="text" id="producerName" placeholder="e.g., Salawara Estate">
+        </div>
+        <div class="form-group">
+          <label for="producerStatus">Status</label>
+          <select id="producerStatus">
+            <option value="live">Live</option>
+            <option value="draft">Draft</option>
+            <option value="paused">Paused</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="cancelProducerBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmProducerBtn">Save Producer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SKU Modal -->
   <div class="modal-overlay" id="skuModal">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title" id="skuModalTitle">Add New Coffee SKU</h3>
+        <h3 class="modal-title" id="skuModalTitle">Add Coffee SKU</h3>
         <button class="modal-close" id="closeSkuModal">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label for="skuCode">SKU Code</label>
-          <input type="text" id="skuCode" placeholder="e.g., PREM-ARA-001 (optional)">
+          <label for="skuProducer" class="required">Producer / Plantation</label>
+          <select id="skuProducer"></select>
         </div>
         <div class="form-group">
-          <label for="skuName" class="required">Coffee SKU Name</label>
-          <input type="text" id="skuName" placeholder="e.g., Premium Arabica 1kg">
+          <label for="skuName" class="required">SKU Name</label>
+          <input type="text" id="skuName" placeholder="e.g., Washed, Natural, Honey">
         </div>
         <div class="form-group">
-          <label for="skuDescription">Description</label>
-          <input type="text" id="skuDescription" placeholder="Brief description">
+          <label class="required">Crop Month &amp; Year</label>
+          <div style="display:flex;gap:0.75rem;">
+            <select id="skuCropMonth" style="flex:1;">
+              <option value="01">January</option><option value="02">February</option>
+              <option value="03">March</option><option value="04">April</option>
+              <option value="05">May</option><option value="06">June</option>
+              <option value="07">July</option><option value="08">August</option>
+              <option value="09">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+            <input type="number" id="skuCropYear" placeholder="2025" min="2000" max="2099" style="flex:1;">
+          </div>
         </div>
         <div class="form-group">
-          <label for="skuBasePrice" class="required">Base Price (₹/kg)</label>
+          <label for="skuBaseGreenPrice" class="required">Base Green Price (₹/kg)</label>
           <div class="input-wrapper">
             <span class="currency-prefix">₹</span>
-            <input type="number" id="skuBasePrice" class="has-prefix" placeholder="0" min="0" step="10">
+            <input type="number" id="skuBaseGreenPrice" class="has-prefix" placeholder="0" min="0" step="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="skuFinalReleasePrice">Final Release Price (₹/kg) <span style="color:var(--text-tertiary);font-weight:400;">— fill after calculations</span></label>
+          <div class="input-wrapper">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="skuFinalReleasePrice" class="has-prefix" placeholder="—" min="0" step="1">
           </div>
         </div>
         <div class="form-group">
           <label for="skuStatus">Status</label>
           <select id="skuStatus">
-            <option value="active">Active</option>
+            <option value="live">Live</option>
             <option value="draft">Draft</option>
+            <option value="paused">Paused</option>
             <option value="archived">Archived</option>
           </select>
         </div>
@@ -1461,15 +1510,15 @@
       logistics: 6, handling: 8, roasting: 7, packaging: 65, loss: 15, shipping: 0, commission: 0
     });
 
-    let skus = loadData('skus', [
-      { id: '1', code: 'HLC-EB-001',  name: 'Early Bird',       description: '', basePrice: 0, status: 'active' },
-      { id: '2', code: 'HLC-BK-001',  name: 'Banana Kents',     description: '', basePrice: 0, status: 'active' },
-      { id: '3', code: 'HLC-ME-001',  name: 'Ms Estate',        description: '', basePrice: 0, status: 'active' },
-      { id: '4', code: 'HLC-SW-001',  name: 'Salawara Washed',  description: '', basePrice: 0, status: 'active' }
-    ]);
+    let producers = loadData('producers', []);
+    // { id, name, status: 'live'|'draft'|'paused'|'archived' }
 
-    let logs                = loadData('logs', []);
+    let skus = loadData('skus', []);
+    // { id, producerId, name, cropMonth, cropYear, baseGreenPrice, finalReleasePrice, status }
+
+    let logs                = [];   // cleared — fresh start with new schema
     let editingSku          = null;
+    let editingProducer     = null;
     let calculationMode     = 'forward';   // 1 kg tab
     let calculationMode250  = 'forward';   // 250g tab
 
@@ -1569,10 +1618,10 @@
         tab.classList.add('active');
         const viewId = tab.getAttribute('data-view');
         document.getElementById(viewId).classList.add('active');
-        if (viewId === 'skus')     renderSkuTable();
+        if (viewId === 'skus')     { renderProducerTable(); renderSkuTable(); }
         if (viewId === 'logs')         renderLogs();
         if (viewId === 'settings')     loadSettings();
-        if (viewId === 'pricetracker') { populatePtSkuFilter(); renderPriceChart(); }
+        if (viewId === 'pricetracker') { populatePtProducerFilter(); renderPriceChart(); }
         document.getElementById('bagTabBar').style.display     = viewId === 'calculator' ? 'block' : 'none';
         document.getElementById('settingsTabBar').style.display = viewId === 'settings'  ? 'block' : 'none';
         pinBars();
@@ -1830,61 +1879,183 @@
     // SKU MANAGEMENT
     // ============================================
 
-    function renderSkuTable() {
-      const tbody      = document.getElementById('skuTableBody');
-      const searchTerm = document.getElementById('skuSearch').value.toLowerCase();
+    // ── Producers ──
 
-      const filtered = skus.filter(s =>
-        s.name.toLowerCase().includes(searchTerm) ||
-        s.description.toLowerCase().includes(searchTerm) ||
-        (s.code && s.code.toLowerCase().includes(searchTerm))
-      );
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-title">No Coffee SKUs Found</div><div class="empty-state-text">${searchTerm ? 'Try a different search' : 'Create your first Coffee SKU'}</div></div></td></tr>`;
+    function renderProducerTable() {
+      const tbody = document.getElementById('producerTableBody');
+      if (!tbody) return;
+      if (producers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon">🏡</div><div class="empty-state-title">No Producers Yet</div><div class="empty-state-text">Add your first producer / plantation</div></div></td></tr>';
         return;
       }
-
-      tbody.innerHTML = filtered.map((sku, i) => `
+      tbody.innerHTML = producers.map((p, i) => `
         <tr>
           <td>${i + 1}</td>
-          <td>${sku.code || '-'}</td>
-          <td><strong>${sku.name}</strong></td>
-          <td>${sku.description}</td>
-          <td>₹${sku.basePrice.toFixed(2)}</td>
-          <td><span class="status-badge status-${sku.status}">${sku.status}</span></td>
+          <td><strong>${p.name}</strong></td>
+          <td><span class="status-badge status-${p.status}">${p.status}</span></td>
           <td>
-            <button class="action-btn" onclick="editSku('${sku.id}')">Edit</button>
-            <button class="action-btn" onclick="deleteSku('${sku.id}')">Delete</button>
+            <button class="action-btn" onclick="editProducer('${p.id}')">Edit</button>
+            <button class="action-btn action-btn-danger" onclick="deleteProducer('${p.id}')">Delete</button>
           </td>
         </tr>
       `).join('');
     }
 
+    function openProducerModal(producer = null) {
+      editingProducer = producer;
+      document.getElementById('producerModalTitle').textContent = producer ? 'Edit Producer' : 'Add Producer';
+      document.getElementById('producerName').value   = producer?.name   || '';
+      document.getElementById('producerStatus').value = producer?.status || 'live';
+      document.getElementById('producerModal').classList.add('active');
+    }
+
+    function closeProducerModal() {
+      document.getElementById('producerModal').classList.remove('active');
+      editingProducer = null;
+    }
+
+    function saveProducer() {
+      const name = document.getElementById('producerName').value.trim();
+      if (!name) { showToast('Please enter a producer name', 'warning'); return; }
+      const data = {
+        id:     editingProducer?.id || Date.now().toString(),
+        name,
+        status: document.getElementById('producerStatus').value
+      };
+      if (editingProducer) {
+        producers[producers.findIndex(p => p.id === editingProducer.id)] = data;
+      } else {
+        producers.push(data);
+      }
+      saveData('producers', producers);
+      closeProducerModal();
+      renderProducerTable();
+      updateSkuSelect();       // producer list in SKU modal needs refresh
+      showToast('Producer saved');
+    }
+
+    window.editProducer = function(id) {
+      const p = producers.find(p => p.id === id);
+      if (p) openProducerModal(p);
+    };
+
+    window.deleteProducer = async function(id) {
+      const hasSkus = skus.some(s => s.producerId === id);
+      if (hasSkus) { showToast('Remove all SKUs under this producer first', 'warning'); return; }
+      if (await showConfirm('Delete this producer?', 'Delete Producer')) {
+        producers = producers.filter(p => p.id !== id);
+        saveData('producers', producers);
+        renderProducerTable();
+        showToast('Producer deleted');
+      }
+    };
+
+    // ── Coffee SKUs ──
+
+    function renderSkuTable() {
+      const tbody      = document.getElementById('skuTableBody');
+      const searchTerm = document.getElementById('skuSearch').value.toLowerCase();
+
+      const filtered = skus.filter(s => {
+        const producer = producers.find(p => p.id === s.producerId);
+        return (
+          s.name.toLowerCase().includes(searchTerm) ||
+          (producer && producer.name.toLowerCase().includes(searchTerm)) ||
+          (s.cropYear && String(s.cropYear).includes(searchTerm))
+        );
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">☕</div><div class="empty-state-title">No Coffee SKUs Found</div><div class="empty-state-text">${searchTerm ? 'Try a different search' : 'Add your first Coffee SKU'}</div></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((sku, i) => {
+        const producer  = producers.find(p => p.id === sku.producerId);
+        const crop      = sku.cropMonth && sku.cropYear ? sku.cropMonth + '/' + sku.cropYear : '—';
+        const baseStr   = sku.baseGreenPrice   ? '₹' + parseFloat(sku.baseGreenPrice).toFixed(0)   : '—';
+        const finalStr  = sku.finalReleasePrice ? '₹' + parseFloat(sku.finalReleasePrice).toFixed(0) : '—';
+        return `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${producer ? producer.name : '<span style="color:var(--text-tertiary)">—</span>'}</td>
+            <td><strong>${sku.name}</strong></td>
+            <td>${crop}</td>
+            <td>${baseStr}</td>
+            <td>${finalStr}</td>
+            <td><span class="status-badge status-${sku.status}">${sku.status}</span></td>
+            <td>
+              <button class="action-btn" onclick="editSku('${sku.id}')">Edit</button>
+              <button class="action-btn action-btn-danger" onclick="deleteSku('${sku.id}')">Delete</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
     function updateSkuSelect() {
-      const activeOpts = '<option value="">-- Select a Coffee SKU --</option>' +
-        skus.filter(s => s.status === 'active').map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      // Calculator dropdowns: optgroup per live producer, sorted by SKU name then crop date
+      const liveProducers = producers.filter(p => p.status === 'live');
+      const placeholder   = '<option value="">— Select a Coffee SKU —</option>';
+
+      let opts = placeholder;
+      liveProducers.forEach(p => {
+        const pSkus = skus
+          .filter(s => s.producerId === p.id && (s.status === 'live' || s.status === 'active'))
+          .sort((a, b) => {
+            const nameC = a.name.localeCompare(b.name);
+            if (nameC !== 0) return nameC;
+            const dateA = a.cropYear + a.cropMonth;
+            const dateB = b.cropYear + b.cropMonth;
+            return dateA.localeCompare(dateB);
+          });
+        if (pSkus.length === 0) return;
+        opts += `<optgroup label="${p.name}">`;
+        pSkus.forEach(s => {
+          const crop = s.cropMonth && s.cropYear ? ' (' + s.cropMonth + '/' + s.cropYear + ')' : '';
+          opts += `<option value="${s.id}">${s.name}${crop}</option>`;
+        });
+        opts += '</optgroup>';
+      });
 
       ['sku', 'sku250'].forEach(id => {
         const sel = document.getElementById(id);
         const cur = sel.value;
-        sel.innerHTML = activeOpts;
+        sel.innerHTML = opts;
         if (cur) sel.value = cur;
       });
 
+      // History filter
       const logFilter = document.getElementById('logFilterSku');
       logFilter.innerHTML = '<option value="">All Coffee SKUs</option>' +
-        skus.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        skus.map(s => {
+          const p    = producers.find(p => p.id === s.producerId);
+          const crop = s.cropMonth && s.cropYear ? ' (' + s.cropMonth + '/' + s.cropYear + ')' : '';
+          const label = (p ? p.name + ' — ' : '') + s.name + crop;
+          return `<option value="${s.id}">${label}</option>`;
+        }).join('');
+
+      // Price Tracker producer dropdown
+      populatePtProducerFilter();
+    }
+
+    function populateSkuProducerDropdown() {
+      const sel = document.getElementById('skuProducer');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— Select producer —</option>' +
+        producers.filter(p => p.status !== 'archived').map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     }
 
     function openSkuModal(sku = null) {
       editingSku = sku;
-      document.getElementById('skuModalTitle').textContent = sku ? 'Edit Coffee SKU' : 'Add New Coffee SKU';
-      document.getElementById('skuCode').value        = sku?.code        || '';
-      document.getElementById('skuName').value        = sku?.name        || '';
-      document.getElementById('skuDescription').value = sku?.description || '';
-      document.getElementById('skuBasePrice').value   = sku?.basePrice   || '';
-      document.getElementById('skuStatus').value      = sku?.status      || 'active';
+      populateSkuProducerDropdown();
+      document.getElementById('skuModalTitle').textContent = sku ? 'Edit Coffee SKU' : 'Add Coffee SKU';
+      document.getElementById('skuProducer').value          = sku?.producerId        || '';
+      document.getElementById('skuName').value              = sku?.name              || '';
+      document.getElementById('skuCropMonth').value         = sku?.cropMonth         || new Date().toISOString().slice(5,7);
+      document.getElementById('skuCropYear').value          = sku?.cropYear          || new Date().getFullYear();
+      document.getElementById('skuBaseGreenPrice').value    = sku?.baseGreenPrice    || '';
+      document.getElementById('skuFinalReleasePrice').value = sku?.finalReleasePrice || '';
+      document.getElementById('skuStatus').value            = sku?.status            || 'live';
       document.getElementById('skuModal').classList.add('active');
     }
 
@@ -1894,19 +2065,30 @@
     }
 
     function saveSku() {
-      const name = document.getElementById('skuName').value.trim();
-      if (!name) { showToast('Please enter a Coffee SKU name', 'warning'); return; }
+      const producerId = document.getElementById('skuProducer').value;
+      if (!producerId) { showToast('Please select a producer', 'warning'); return; }
 
-      const basePrice = parseFloat(document.getElementById('skuBasePrice').value);
-      if (!basePrice || basePrice <= 0) { showToast('Please enter a valid base price', 'warning'); return; }
+      const name = document.getElementById('skuName').value.trim();
+      if (!name) { showToast('Please enter a SKU name', 'warning'); return; }
+
+      const cropMonth = document.getElementById('skuCropMonth').value;
+      const cropYear  = document.getElementById('skuCropYear').value.trim();
+      if (!cropYear || isNaN(cropYear)) { showToast('Please enter a valid crop year', 'warning'); return; }
+
+      const baseGreenPrice = parseFloat(document.getElementById('skuBaseGreenPrice').value);
+      if (!baseGreenPrice || baseGreenPrice <= 0) { showToast('Base green price is required', 'warning'); return; }
+
+      const finalReleasePrice = parseFloat(document.getElementById('skuFinalReleasePrice').value) || null;
 
       const skuData = {
-        id:          editingSku?.id || Date.now().toString(),
-        code:        document.getElementById('skuCode').value.trim(),
+        id:                editingSku?.id || Date.now().toString(),
+        producerId,
         name,
-        description: document.getElementById('skuDescription').value.trim(),
-        basePrice,
-        status:      document.getElementById('skuStatus').value
+        cropMonth,
+        cropYear,
+        baseGreenPrice,
+        finalReleasePrice,
+        status:            document.getElementById('skuStatus').value
       };
 
       if (editingSku) {
@@ -1919,7 +2101,7 @@
       closeSkuModal();
       updateSkuSelect();
       renderSkuTable();
-      showToast('Coffee SKU saved successfully');
+      showToast('Coffee SKU saved');
     }
 
     window.editSku = function(id) {
@@ -1928,11 +2110,7 @@
     };
 
     window.deleteSku = async function(id) {
-      const hasHistory = logs.some(l => l.skuId === id);
-      const msg = hasHistory
-        ? 'This SKU has saved pricing history. The history entries will be kept but will no longer link to an active SKU. Are you sure?'
-        : 'Are you sure you want to delete this Coffee SKU?';
-      if (await showConfirm(msg, 'Delete Coffee SKU')) {
+      if (await showConfirm('Delete this Coffee SKU?', 'Delete SKU')) {
         skus = skus.filter(s => s.id !== id);
         saveData('skus', skus);
         updateSkuSelect();
@@ -2186,81 +2364,74 @@
     // PRICE TRACKER
     // ============================================
 
-    let ptSize = '1kg';
     let ptChartInstance = null;
 
-    function populatePtSkuFilter() {
-      const sel = document.getElementById('ptSkuFilter');
+    function populatePtProducerFilter() {
+      const sel = document.getElementById('ptProducerFilter');
       if (!sel) return;
-      const current = sel.value;
-      sel.innerHTML = '<option value="">— Select a SKU —</option>';
-      skus.filter(s => s.status !== 'inactive').forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = s.name;
-        sel.appendChild(opt);
-      });
-      if (current) sel.value = current;
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— Select a producer —</option>' +
+        producers.filter(p => p.status !== 'archived').map(p =>
+          '<option value="' + p.id + '">' + p.name + '</option>'
+        ).join('');
+      if (cur) sel.value = cur;
+      populatePtSkuNameFilter();
     }
 
-    function setPtSize(size) {
-      ptSize = size;
-      const btn1   = document.getElementById('ptSize1kg');
-      const btn250 = document.getElementById('ptSize250g');
-      if (!btn1 || !btn250) return;
-      const on  = 'var(--accent-coffee)';
-      const off = 'var(--border-medium)';
-      btn1.style.background   = size === '1kg'  ? on  : 'transparent';
-      btn1.style.color        = size === '1kg'  ? '#fff' : 'var(--text-secondary)';
-      btn1.style.borderColor  = size === '1kg'  ? on  : off;
-      btn250.style.background = size === '250g' ? on  : 'transparent';
-      btn250.style.color      = size === '250g' ? '#fff' : 'var(--text-secondary)';
-      btn250.style.borderColor= size === '250g' ? on  : off;
+    function populatePtSkuNameFilter() {
+      const producerId = document.getElementById('ptProducerFilter').value;
+      const sel = document.getElementById('ptSkuNameFilter');
+      if (!sel) return;
+      const cur = sel.value;
+      // Unique SKU names under selected producer
+      const names = [...new Set(
+        skus.filter(s => !producerId || s.producerId === producerId).map(s => s.name)
+      )].sort();
+      sel.innerHTML = '<option value="">All SKUs</option>' +
+        names.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+      if (cur && names.includes(cur)) sel.value = cur;
       renderPriceChart();
     }
 
     function renderPriceChart() {
-      const skuId   = document.getElementById('ptSkuFilter').value;
-      const channel = document.getElementById('ptChannelFilter').value;
-      const canvas  = document.getElementById('ptChart');
-      const empty   = document.getElementById('ptEmptyState');
-      const stats   = document.getElementById('ptStats');
+      const producerId  = document.getElementById('ptProducerFilter').value;
+      const skuNameFilter = document.getElementById('ptSkuNameFilter').value;
+      const canvas      = document.getElementById('ptChart');
+      const empty       = document.getElementById('ptEmptyState');
+      const stats       = document.getElementById('ptStats');
 
-      if (!skuId) {
+      const showEmpty = (msg) => {
         canvas.style.display = 'none';
         empty.style.display  = 'flex';
+        empty.querySelector('span:last-child').textContent = msg;
         stats.style.display  = 'none';
         if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
-        return;
-      }
+      };
 
-      // Filter logs for this SKU + bag size + optional channel
-      let points = logs.filter(l =>
-        l.skuId === skuId &&
-        l.bagSize === ptSize &&
-        (channel ? (l.channel || '') === channel : true) &&
-        (l.finalPrice != null || l.sellingPrice != null)
-      ).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      if (!producerId) { showEmpty('Select a producer to see their price trends'); return; }
 
-      if (points.length === 0) {
-        canvas.style.display = 'none';
-        empty.style.display  = 'flex';
-        empty.querySelector('span:last-child').textContent = 'No saved versions found for this SKU / size / channel combination.';
-        stats.style.display  = 'none';
-        if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
-        return;
-      }
+      // All SKUs for this producer (optionally filtered by name)
+      let filteredSkus = skus.filter(s =>
+        s.producerId === producerId &&
+        (!skuNameFilter || s.name === skuNameFilter)
+      ).sort((a, b) => {
+        const da = (a.cropYear || '0') + (a.cropMonth || '00');
+        const db = (b.cropYear || '0') + (b.cropMonth || '00');
+        return da.localeCompare(db);
+      });
+
+      if (filteredSkus.length === 0) { showEmpty('No SKUs found for this producer / filter combination.'); return; }
 
       empty.style.display  = 'none';
       canvas.style.display = 'block';
       stats.style.display  = 'grid';
 
-      const labels    = points.map(p => {
-        const d = new Date(p.timestamp);
-        return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'2-digit' });
-      });
-      const sellPrices  = points.map(p => parseFloat(p.finalPrice || p.sellingPrice) || 0);
-      const greenPrices = points.map(p => parseFloat(p.greenCoffeeCost || p.greenCoffeePrice) || 0);
+      // X labels: "SKU Name (MM/YYYY)"
+      const labels = filteredSkus.map(s =>
+        s.name + (s.cropMonth && s.cropYear ? ' (' + s.cropMonth + '/' + s.cropYear + ')' : '')
+      );
+      const basePrices  = filteredSkus.map(s => s.baseGreenPrice    ? parseFloat(s.baseGreenPrice)    : null);
+      const finalPrices = filteredSkus.map(s => s.finalReleasePrice ? parseFloat(s.finalReleasePrice) : null);
 
       if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
 
@@ -2271,29 +2442,29 @@
           labels,
           datasets: [
             {
-              label: 'Selling Price (₹)',
-              data: sellPrices,
-              borderColor: '#6B3F1F',
-              backgroundColor: 'rgba(107,63,31,0.08)',
-              pointBackgroundColor: '#6B3F1F',
-              pointRadius: 5,
-              pointHoverRadius: 7,
+              label: 'Base Green Price (₹/kg)',
+              data: basePrices,
+              borderColor: '#2D5940',
+              backgroundColor: 'rgba(45,89,64,0.08)',
+              pointBackgroundColor: '#2D5940',
+              pointRadius: 6,
+              pointHoverRadius: 8,
               tension: 0.3,
               fill: true,
-              yAxisID: 'y'
+              spanGaps: true
             },
             {
-              label: 'Green Coffee Cost (₹/bag)',
-              data: greenPrices,
-              borderColor: '#2D5940',
-              backgroundColor: 'rgba(45,89,64,0.06)',
-              pointBackgroundColor: '#2D5940',
-              pointRadius: 4,
-              pointHoverRadius: 6,
+              label: 'Final Release Price (₹/kg)',
+              data: finalPrices,
+              borderColor: '#6B3F1F',
+              backgroundColor: 'rgba(107,63,31,0.06)',
+              pointBackgroundColor: '#6B3F1F',
+              pointRadius: 6,
+              pointHoverRadius: 8,
               tension: 0.3,
               fill: false,
-              borderDash: [5, 3],
-              yAxisID: 'y'
+              borderDash: [6, 3],
+              spanGaps: false   // gap where not yet set
             }
           ]
         },
@@ -2307,14 +2478,16 @@
             },
             tooltip: {
               callbacks: {
-                label: ctx => ' ' + ctx.dataset.label + ': ₹' + ctx.parsed.y.toFixed(2)
+                label: c => c.parsed.y != null
+                  ? ' ' + c.dataset.label + ': ₹' + c.parsed.y.toFixed(0) + '/kg'
+                  : ' ' + c.dataset.label + ': not set'
               }
             }
           },
           scales: {
             x: {
               grid: { color: 'rgba(0,0,0,0.05)' },
-              ticks: { font: { family: 'DM Sans, sans-serif', size: 11 }, maxRotation: 45 }
+              ticks: { font: { family: 'DM Sans, sans-serif', size: 11 }, maxRotation: 40 }
             },
             y: {
               grid: { color: 'rgba(0,0,0,0.05)' },
@@ -2328,16 +2501,10 @@
       });
 
       // Stats
-      const first  = sellPrices[0];
-      const latest = sellPrices[sellPrices.length - 1];
-      const diff   = latest - first;
-      const pct    = first > 0 ? ((diff / first) * 100).toFixed(1) : 0;
-      document.getElementById('ptStatFirst').textContent  = '₹' + first.toFixed(2);
-      document.getElementById('ptStatLatest').textContent = '₹' + latest.toFixed(2);
-      const changeEl = document.getElementById('ptStatChange');
-      changeEl.textContent = (diff >= 0 ? '+' : '') + '₹' + diff.toFixed(2) + ' (' + pct + '%)';
-      changeEl.style.color = diff > 0 ? '#EA580C' : diff < 0 ? '#2D5940' : 'var(--text-primary)';
-      document.getElementById('ptStatCount').textContent  = points.length;
+      const validBase = basePrices.filter(v => v != null);
+      document.getElementById('ptStatFirst').textContent  = validBase.length ? '₹' + validBase[0].toFixed(0) + '/kg' : '—';
+      document.getElementById('ptStatLatest').textContent = validBase.length ? '₹' + validBase[validBase.length-1].toFixed(0) + '/kg' : '—';
+      document.getElementById('ptStatCount').textContent  = filteredSkus.length;
     }
 
     // ============================================
@@ -2506,6 +2673,14 @@
     // EVENT LISTENERS — SKU management
     // ============================================
 
+    document.getElementById('addProducerBtn').addEventListener('click',     () => openProducerModal());
+    document.getElementById('closeProducerModal').addEventListener('click',  closeProducerModal);
+    document.getElementById('cancelProducerBtn').addEventListener('click',   closeProducerModal);
+    document.getElementById('confirmProducerBtn').addEventListener('click',  saveProducer);
+    document.getElementById('producerModal').addEventListener('click', e => {
+      if (e.target.id === 'producerModal') closeProducerModal();
+    });
+
     document.getElementById('addSkuBtn').addEventListener('click',    () => openSkuModal());
     document.getElementById('closeSkuModal').addEventListener('click', closeSkuModal);
     document.getElementById('cancelSkuBtn').addEventListener('click',  closeSkuModal);
@@ -2515,6 +2690,19 @@
     document.getElementById('skuModal').addEventListener('click', e => {
       if (e.target.id === 'skuModal') closeSkuModal();
     });
+
+    // Auto-fill green coffee price when a SKU is chosen in the calculator
+    function onSkuSelected(size) {
+      const sfx  = size === '250g' ? '250' : '';
+      const skuId = document.getElementById('sku' + sfx).value;
+      const sku   = skus.find(s => s.id === skuId);
+      if (sku && sku.baseGreenPrice) {
+        document.getElementById('greenCoffeePrice' + sfx).value = sku.baseGreenPrice;
+        calculate(size);
+      }
+    }
+    document.getElementById('sku').addEventListener('change',    () => onSkuSelected('1kg'));
+    document.getElementById('sku250').addEventListener('change', () => onSkuSelected('250g'));
 
     // ============================================
     // EVENT LISTENERS — History
@@ -2530,8 +2718,8 @@
     // EVENT LISTENERS — Price Tracker
     // ============================================
 
-    document.getElementById('ptSkuFilter').addEventListener('change',     renderPriceChart);
-    document.getElementById('ptChannelFilter').addEventListener('change', renderPriceChart);
+    document.getElementById('ptProducerFilter').addEventListener('change',  populatePtSkuNameFilter);
+    document.getElementById('ptSkuNameFilter').addEventListener('change',   renderPriceChart);
 
     // ============================================
     // EVENT LISTENERS — Settings
@@ -2584,6 +2772,7 @@
         if (data.settings250g)     settings250g     = data.settings250g;
         if (data.pkgBreakdown1kg)  pkgBreakdown1kg  = data.pkgBreakdown1kg;
         if (data.pkgBreakdown250g) pkgBreakdown250g = data.pkgBreakdown250g;
+        if (data.producers)        producers        = Object.values(data.producers);
         if (data.skus)             skus             = Object.values(data.skus);
         if (data.logs)             logs             = Object.values(data.logs)
                                                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
@@ -2596,10 +2785,19 @@
     }
 
     function attachFirebaseListeners() {
+      // Producers — propagate instantly
+      db.ref('hlc/producers').on('value', snap => {
+        const data = snap.val();
+        producers = data ? Object.values(data) : [];
+        renderProducerTable();
+        updateSkuSelect();
+      });
       // SKUs — anyone adding/editing a SKU propagates instantly to all users
       db.ref('hlc/skus').on('value', snap => {
         const data = snap.val();
-        if (data) { skus = Object.values(data); updateSkuSelect(); renderSkuTable(); }
+        skus = data ? Object.values(data) : [];
+        updateSkuSelect();
+        renderSkuTable();
       });
       // Settings — if defaults change, all open calculators recalculate
       db.ref('hlc/settings').on('value', snap => {
@@ -2651,7 +2849,13 @@
       // Fetch latest shared data from Firebase (falls back to localStorage if offline)
       await initFromCloud();
 
+      // Clear old log data from Firebase + localStorage (schema migration)
+      logs = [];
+      localStorage.removeItem('logs');
+      db.ref('hlc/logs').remove().catch(() => {});
+
       // Render UI with cloud data
+      renderProducerTable();
       updateSkuSelect();
       renderSkuTable();
       toggleCalculator(false, '1kg');
