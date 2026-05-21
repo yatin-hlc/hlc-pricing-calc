@@ -715,7 +715,25 @@
                     style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">Others</button>
                 </div>
                 <button class="btn btn-success" id="saveVersionBtn" style="width:100%;margin-bottom:0.75rem;" disabled><span>💾</span> Save Version</button>
-                <button class="btn btn-outline"  id="printPdfBtn"    style="width:100%;" disabled><span>📄</span> Print / Save as PDF</button>
+                <button class="btn btn-outline"  id="printPdfBtn"    style="width:100%;margin-bottom:0.75rem;" disabled><span>📄</span> Print / Save as PDF</button>
+                <!-- Bulk Price Tiers -->
+                <button type="button" id="bulkTiersToggle" onclick="toggleBulkTiers('1kg')"
+                  style="width:100%;padding:0.625rem;border:1.5px solid var(--accent-coffee);border-radius:8px;background:var(--bg-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;color:var(--accent-coffee);cursor:pointer;transition:all 0.2s;box-shadow:4px 4px 0px var(--accent-coffee);letter-spacing:0.01em;">
+                  📦 Show Bulk Price Tiers
+                </button>
+                <div id="bulkTiersPanel" style="display:none;margin-top:0.75rem;">
+                  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+                    <thead>
+                      <tr style="border-bottom:2px solid var(--border-medium);">
+                        <th style="text-align:left;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Quantity</th>
+                        <th style="text-align:center;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Discount %</th>
+                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / kg</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bulkTiersBody"></tbody>
+                  </table>
+                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Discount % is editable — changes save automatically.</div>
+                </div>
               </div>
             </div>
 
@@ -817,26 +835,6 @@
                 </div>
               </div>
 
-              <!-- Bulk Price Tiers -->
-              <div style="margin-top:1rem;">
-                <button type="button" id="bulkTiersToggle" onclick="toggleBulkTiers('1kg')"
-                  style="width:100%;padding:0.625rem;border:1.5px solid var(--accent-coffee);border-radius:8px;background:var(--bg-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;color:var(--accent-coffee);cursor:pointer;transition:all 0.2s;box-shadow:4px 4px 0px var(--accent-coffee);letter-spacing:0.01em;">
-                  📦 Show Bulk Price Tiers
-                </button>
-                <div id="bulkTiersPanel" style="display:none;margin-top:0.75rem;">
-                  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
-                    <thead>
-                      <tr style="border-bottom:2px solid var(--border-medium);">
-                        <th style="text-align:left;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Quantity</th>
-                        <th style="text-align:center;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Discount %</th>
-                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / kg</th>
-                      </tr>
-                    </thead>
-                    <tbody id="bulkTiersBody"></tbody>
-                  </table>
-                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Discount % is editable — changes save automatically.</div>
-                </div>
-              </div>
             </div>
             </div>
 
@@ -922,7 +920,25 @@
                     style="flex:1;padding:0.35rem 0;border:1px solid var(--border-medium);border-radius:6px;background:transparent;font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">Others</button>
                 </div>
                 <button class="btn btn-success" id="saveVersionBtn250" style="width:100%;margin-bottom:0.75rem;" disabled><span>💾</span> Save Version</button>
-                <button class="btn btn-outline"  id="printPdfBtn250"    style="width:100%;" disabled><span>📄</span> Print / Save as PDF</button>
+                <button class="btn btn-outline"  id="printPdfBtn250"    style="width:100%;margin-bottom:0.75rem;" disabled><span>📄</span> Print / Save as PDF</button>
+                <!-- Bulk Price Tiers -->
+                <button type="button" id="bulkTiersToggle250" onclick="toggleBulkTiers('250g')"
+                  style="width:100%;padding:0.625rem;border:1.5px solid var(--accent-coffee);border-radius:8px;background:var(--bg-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;color:var(--accent-coffee);cursor:pointer;transition:all 0.2s;box-shadow:4px 4px 0px var(--accent-coffee);letter-spacing:0.01em;">
+                  📦 Show Bulk Price Tiers
+                </button>
+                <div id="bulkTiersPanel250" style="display:none;margin-top:0.75rem;">
+                  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+                    <thead>
+                      <tr style="border-bottom:2px solid var(--border-medium);">
+                        <th style="text-align:left;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Quantity</th>
+                        <th style="text-align:center;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Discount %</th>
+                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / bag</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bulkTiersBody250"></tbody>
+                  </table>
+                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Discount % is editable — changes save automatically.</div>
+                </div>
               </div>
             </div>
 
@@ -1033,26 +1049,6 @@
                   </div>
                 </div>
 
-              <!-- Bulk Price Tiers 250g -->
-              <div style="margin-top:1rem;">
-                <button type="button" id="bulkTiersToggle250" onclick="toggleBulkTiers('250g')"
-                  style="width:100%;padding:0.625rem;border:1.5px solid var(--accent-coffee);border-radius:8px;background:var(--bg-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;color:var(--accent-coffee);cursor:pointer;transition:all 0.2s;box-shadow:4px 4px 0px var(--accent-coffee);letter-spacing:0.01em;">
-                  📦 Show Bulk Price Tiers
-                </button>
-                <div id="bulkTiersPanel250" style="display:none;margin-top:0.75rem;">
-                  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
-                    <thead>
-                      <tr style="border-bottom:2px solid var(--border-medium);">
-                        <th style="text-align:left;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Quantity</th>
-                        <th style="text-align:center;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Discount %</th>
-                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / bag</th>
-                      </tr>
-                    </thead>
-                    <tbody id="bulkTiersBody250"></tbody>
-                  </table>
-                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Discount % is editable — changes save automatically.</div>
-                </div>
-              </div>
               </div>
             </div>
 
