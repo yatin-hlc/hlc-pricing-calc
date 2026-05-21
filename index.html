@@ -2239,7 +2239,7 @@
         l.skuId === skuId &&
         l.bagSize === ptSize &&
         (channel ? (l.channel || '') === channel : true) &&
-        l.sellingPrice != null
+        (l.finalPrice != null || l.sellingPrice != null)
       ).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
       if (points.length === 0) {
@@ -2259,7 +2259,7 @@
         const d = new Date(p.timestamp);
         return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'2-digit' });
       });
-      const sellPrices  = points.map(p => parseFloat(p.sellingPrice)  || 0);
+      const sellPrices  = points.map(p => parseFloat(p.finalPrice || p.sellingPrice) || 0);
       const greenPrices = points.map(p => parseFloat(p.greenCoffeePrice) || 0);
 
       if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
