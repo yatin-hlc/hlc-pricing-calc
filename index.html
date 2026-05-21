@@ -3455,8 +3455,22 @@
       db.ref('hlc/pkgBreakdown250g').on('value', snap => {
         if (snap.val()) { pkgBreakdown250g = snap.val(); loadPkgBreakdown('250g'); }
       });
-      // Logs: no live listener (append-only, up to 500 entries)
-      // Each saveVersion() already calls saveData('logs', logs) which writes to Firebase
+      // Logs — live listener so all users see new history entries instantly
+      db.ref('hlc/logs').on('value', snap => {
+        const data = snap.val();
+        logs = data
+          ? Object.values(data).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, MAX_LOGS)
+          : [];
+        renderLogs();
+      });
+
+      // Bulk tier discounts — live so discount changes reflect everywhere immediately
+      db.ref('hlc/bulkTierDiscounts').on('value', snap => {
+        if (snap.val()) { bulkTierDiscounts = snap.val(); renderBulkTiers('1kg'); calculate('1kg'); }
+      });
+      db.ref('hlc/bulkTierDiscounts250').on('value', snap => {
+        if (snap.val()) { bulkTierDiscounts250 = snap.val(); renderBulkTiers('250g'); calculate('250g'); }
+      });
     }
 
     // ============================================
