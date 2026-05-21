@@ -1147,7 +1147,7 @@
         </div>
 
         <div id="ptStats" style="display:none;margin-top:1rem;">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;">
             <div class="card" style="text-align:center;padding:0.875rem;">
               <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Earliest Base Price</div>
               <div id="ptStatFirst" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
@@ -1155,6 +1155,10 @@
             <div class="card" style="text-align:center;padding:0.875rem;">
               <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Latest Base Price</div>
               <div id="ptStatLatest" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
+            </div>
+            <div class="card" style="text-align:center;padding:0.875rem;">
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Latest Final Release</div>
+              <div id="ptStatFinal" style="font-size:1.1rem;font-weight:700;color:var(--accent-coffee);">—</div>
             </div>
             <div class="card" style="text-align:center;padding:0.875rem;">
               <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">SKUs Tracked</div>
@@ -2501,9 +2505,11 @@
       });
 
       // Stats
-      const validBase = basePrices.filter(v => v != null);
-      document.getElementById('ptStatFirst').textContent  = validBase.length ? '₹' + validBase[0].toFixed(0) + '/kg' : '—';
-      document.getElementById('ptStatLatest').textContent = validBase.length ? '₹' + validBase[validBase.length-1].toFixed(0) + '/kg' : '—';
+      const validBase  = basePrices.filter(v => v != null);
+      const validFinal = finalPrices.filter(v => v != null);
+      document.getElementById('ptStatFirst').textContent  = validBase.length  ? '₹' + validBase[0].toFixed(0) + '/kg'              : '—';
+      document.getElementById('ptStatLatest').textContent = validBase.length  ? '₹' + validBase[validBase.length-1].toFixed(0) + '/kg' : '—';
+      document.getElementById('ptStatFinal').textContent  = validFinal.length ? '₹' + validFinal[validFinal.length-1].toFixed(0) + '/kg' : 'Not set';
       document.getElementById('ptStatCount').textContent  = filteredSkus.length;
     }
 
