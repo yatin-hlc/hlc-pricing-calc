@@ -2068,41 +2068,50 @@
         // Build inline entries sub-table (hidden by default)
         const entryRows = entries.map(e => {
           const base  = e.baseGreenPrice    ? '₹' + parseFloat(e.baseGreenPrice).toFixed(0)    : '—';
-          const final = e.finalReleasePrice ? '₹' + parseFloat(e.finalReleasePrice).toFixed(0) : '<span style="color:var(--text-tertiary);font-style:italic;">not set</span>';
-          return `<tr style="background:var(--bg-secondary);">
-            <td style="padding:0.4rem 0.75rem;font-size:0.8rem;">${e.cropMonth}/${e.cropYear}</td>
-            <td style="padding:0.4rem 0.75rem;font-size:0.8rem;font-weight:600;">${base}</td>
-            <td style="padding:0.4rem 0.75rem;font-size:0.8rem;">${final}</td>
-            <td style="padding:0.4rem 0.75rem;">
-              <button class="action-btn" style="font-size:0.75rem;" onclick="editCropEntry('${e.id}')">Edit</button>
-              <button class="action-btn action-btn-danger" style="font-size:0.75rem;" onclick="deleteCropEntry('${e.id}')">Delete</button>
+          const final = e.finalReleasePrice ? '₹' + parseFloat(e.finalReleasePrice).toFixed(0) : null;
+          return `<tr style="border-bottom:1px solid var(--border-light);">
+            <td style="padding:0.65rem 1rem;">
+              <span style="display:inline-block;background:#FFF7ED;color:var(--accent-coffee);border:1px solid #FED7AA;border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">${e.cropMonth}/${e.cropYear}</span>
+            </td>
+            <td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">${base}</td>
+            <td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:${final ? '#2D5940' : 'var(--text-tertiary)'};">${final || '<span style="font-weight:400;font-style:italic;font-size:0.8rem;">not set yet</span>'}</td>
+            <td style="padding:0.65rem 1rem;text-align:right;">
+              <button class="action-btn" style="font-size:0.8rem;" onclick="editCropEntry('${e.id}')">Edit</button>
+              <button class="action-btn action-btn-danger" style="font-size:0.8rem;" onclick="deleteCropEntry('${e.id}')">Delete</button>
             </td></tr>`;
         }).join('');
 
         const subTable = `
           <tr id="skuEntries_${sku.id}" style="display:none;">
-            <td colspan="6" style="padding:0;background:var(--bg-tertiary);border-bottom:2px solid var(--border-medium);">
-              <div style="padding:0.75rem 1rem;">
-                <div style="font-size:0.8rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Crop Entries — ${sku.name}</div>
-                ${entries.length ? `<table style="width:100%;border-collapse:collapse;margin-bottom:0.5rem;">
-                  <thead><tr style="border-bottom:1px solid var(--border-medium);">
-                    <th style="text-align:left;padding:0.3rem 0.75rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;">Crop</th>
-                    <th style="text-align:left;padding:0.3rem 0.75rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;">Base ₹/kg</th>
-                    <th style="text-align:left;padding:0.3rem 0.75rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;">Final ₹/kg</th>
-                    <th style="padding:0.3rem 0.75rem;"></th>
-                  </tr></thead><tbody>${entryRows}</tbody>
-                </table>` : '<p style="font-size:0.8125rem;color:var(--text-tertiary);margin:0 0 0.5rem;">No crop entries yet.</p>'}
-                ${canAdd ? `<button class="btn btn-outline" style="font-size:0.8rem;padding:0.35rem 0.875rem;" onclick="openCropEntryModal('${sku.id}')">+ Add Crop Entry</button>` : '<span style="font-size:0.8rem;color:var(--text-tertiary);">Set SKU to Live to add entries.</span>'}
+            <td colspan="6" style="padding:0;border-left:3px solid var(--accent-coffee);border-bottom:2px solid var(--accent-coffee);">
+              <div style="background:var(--bg-primary);padding:1rem 1.25rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;">
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <span style="font-size:0.95rem;font-weight:700;color:var(--accent-coffee);">☕ ${sku.name}</span>
+                    <span style="font-size:0.75rem;color:var(--text-tertiary);font-weight:400;">— crop year entries</span>
+                  </div>
+                  ${canAdd ? `<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-coffee);border-radius:6px;padding:0.35rem 0.875rem;cursor:pointer;color:var(--accent-coffee);font-size:0.8rem;font-weight:600;font-family:inherit;box-shadow:2px 2px 0px var(--accent-coffee);transition:all 0.15s;" onclick="openCropEntryModal('${sku.id}')" onmouseover="this.style.background='var(--accent-coffee)';this.style.color='#fff';this.style.boxShadow='none';" onmouseout="this.style.background='var(--bg-secondary)';this.style.color='var(--accent-coffee)';this.style.boxShadow='2px 2px 0px var(--accent-coffee)';">+ Add Crop Entry</button>` : '<span style="font-size:0.8rem;color:var(--text-tertiary);">Set SKU to Live to add entries.</span>'}
+                </div>
+                ${entries.length ? `<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);border-radius:8px;overflow:hidden;border:1px solid var(--border-light);">
+                  <thead style="background:var(--bg-tertiary);">
+                    <tr>
+                      <th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Crop</th>
+                      <th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Base Green ₹/kg</th>
+                      <th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Final Release ₹/kg</th>
+                      <th style="padding:0.5rem 1rem;"></th>
+                    </tr>
+                  </thead><tbody>${entryRows}</tbody>
+                </table>` : `<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-radius:8px;padding:1.25rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">No crop entries yet — click <strong style="color:var(--accent-coffee);">+ Add Crop Entry</strong> to start tracking prices.</div>`}
               </div>
             </td>
           </tr>`;
 
-        const mainRow = `<tr>
+        const mainRow = `<tr style="border-bottom:1px solid var(--border-light);">
           <td>${i + 1}</td>
           <td>${producer ? producer.name : '<span style="color:var(--text-tertiary)">—</span>'}</td>
           <td><strong>${sku.name}</strong></td>
           <td>
-            <button class="action-btn" style="font-size:0.8125rem;font-weight:600;color:var(--accent-coffee);" onclick="toggleSkuEntries('${sku.id}')">
+            <button style="background:${entryCount > 0 ? 'var(--accent-coffee)' : 'transparent'};color:${entryCount > 0 ? '#fff' : 'var(--text-tertiary)'};border:1.5px solid ${entryCount > 0 ? 'var(--accent-coffee)' : 'var(--border-medium)'};border-radius:20px;padding:0.25rem 0.75rem;font-size:0.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;" onclick="toggleSkuEntries('${sku.id}')">
               ${entryCount} entr${entryCount === 1 ? 'y' : 'ies'} ▾
             </button>
           </td>
