@@ -2031,8 +2031,8 @@
         + (shippingCost > 0 ? r('Website Shipping', '₹' + shippingCost.toFixed(2)) : '')
         + r('Total Base Cost', '₹' + (log.totalBase || 0).toFixed(2), true)
         + (commissionPct > 0 ? r('Shopify Commission (' + commissionPct.toFixed(1) + '%)', '₹' + commissionAmt.toFixed(2)) : '')
-        + r('HLC Margin %', (log.premiumPercent || 0).toFixed(1) + '%')
-        + r('HLC Premium', '₹' + (log.premiumAmount || 0).toFixed(2))
+        + r('HLC Margin %', (log.premiumPercent || 0).toFixed(1) + '%', true)
+        + r('HLC Premium', '₹' + (log.premiumAmount || 0).toFixed(2), true)
         + '</tbody></table>'
         + '<table><tbody>'
         + '<tr class="lp-final"><td>' + priceLbl + '</td><td style="text-align:right;">₹' + (log.finalPrice || 0).toFixed(2) + ' / ' + unit + '</td></tr>'
