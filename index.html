@@ -638,6 +638,25 @@
 
       .card, .final-price { page-break-inside: avoid; }
       html { font-size: 14px; }
+
+      /* Log print mode — hide everything except the log print area */
+      body.printing-log .app-container,
+      body.printing-log #bagTabBar,
+      body.printing-log #settingsTabBar,
+      body.printing-log .toast-container { display: none !important; }
+      body.printing-log #logPrintArea { display: block !important; }
+
+      #logPrintArea {
+        font-family: 'DM Sans', sans-serif; color: #2C2018; padding: 2rem; font-size: 0.9rem;
+      }
+      #logPrintArea h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 1.6rem; color: #3C2415; margin: 0 0 0.2rem; }
+      #logPrintArea .lp-meta { color: #777; font-size: 0.8rem; margin-bottom: 1.5rem; }
+      #logPrintArea .lp-section { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #9B8578; margin: 1.25rem 0 0.25rem; }
+      #logPrintArea table { width: 100%; border-collapse: collapse; margin-bottom: 0.5rem; }
+      #logPrintArea tr { border-bottom: 1px solid #eee; }
+      #logPrintArea th { text-align: left; padding: 4px 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #999; border-bottom: 2px solid #ddd; }
+      #logPrintArea td { padding: 5px 8px; }
+      #logPrintArea .lp-final td { font-size: 1.1rem; font-weight: 800; color: #3C2415; border-top: 2px solid #3C2415; padding-top: 8px; }
     }
   </style>
   <!-- Chart.js for Price Tracker -->
@@ -1553,6 +1572,7 @@
 
   <!-- Toast container -->
   <div id="toastContainer" class="toast-container"></div>
+  <div id="logPrintArea" style="display:none;"></div>
 
   <!-- ══════════════════════════════════════════ -->
   <!--  SIGN-IN OVERLAY                         -->
@@ -1941,6 +1961,86 @@
       document.title  = `${skuName} ${size} Price Calculation`;
       window.print();
       setTimeout(() => { document.title = origTitle; }, 100);
+    }
+
+    function printLog(logId) {
+      const log = logs.find(function(l) { return l.id === logId; });
+      if (!log) return;
+
+      const is250           = (log.bagSize || '1kg') === '250g';
+      const cfg             = log.settings || {};
+      const isReverse       = log.calculationMode === 'reverse';
+      const priceLbl        = isReverse ? 'Target Price' : 'Final Price';
+      const unit            = is250 ? 'bag' : 'kg';
+      const bulkUnit        = is250 ? 'bags' : 'kg';
+      const dateStr         = new Date(log.timestamp).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
+      const greenCoffeeCost = log.greenCoffeeCost || 0;
+      const lossAmt         = greenCoffeeCost * ((cfg.loss || 0) / 100);
+      const effectiveCost   = greenCoffeeCost + lossAmt;
+      const commissionPct   = cfg.commission || 0;
+      const commissionAmt   = (log.finalPrice || 0) * commissionPct / 100;
+      const shippingCost    = cfg.shipping || 0;
+      const channelLabel    = { retail: 'Retail', b2b: 'B2B', others: 'Others' }[log.channel] || '';
+
+      var r = function(label, value, bold, rightAlign) {
+        var style = bold ? 'font-weight:700;color:#3C2415;' : 'color:#555;';
+        var valStyle = rightAlign !== false ? 'text-align:right;' : '';
+        return '<tr><td style="padding:5px 8px;' + style + '">' + label + '</td>'
+          + '<td style="padding:5px 8px;' + valStyle + (bold ? 'font-weight:700;color:#3C2415;' : '') + '">' + value + '</td></tr>';
+      };
+
+      var tiers   = is250 ? BULK_TIERS_250G : BULK_TIERS_1KG;
+      var discObj = is250 ? bulkTierDiscounts250 : bulkTierDiscounts;
+      var tierRows = tiers.filter(function(t) { return t.tierKey; }).map(function(t) {
+        var disc  = discObj[t.tierKey] || 0;
+        var price = (log.finalPrice || 0) * (1 - disc / 100);
+        return '<tr><td style="padding:4px 8px;">' + t.label + '</td>'
+          + '<td style="padding:4px 8px;text-align:center;">' + disc + '%</td>'
+          + '<td style="padding:4px 8px;text-align:right;font-weight:700;">₹' + price.toFixed(2) + '/' + unit + '</td></tr>';
+      }).join('');
+
+      var html = '<h1>Half Light Coffee Roasters</h1>'
+        + '<div class="lp-meta">' + log.skuName + '  ·  ' + (is250 ? '250 g bag' : '1 kg bag')
+        + (channelLabel ? '  ·  ' + channelLabel : '') + '<br>' + dateStr + '</div>'
+        + '<div class="lp-section">Cost Breakdown</div>'
+        + '<table><tbody>'
+        + r('Green Coffee Price (₹/kg)', '₹' + (log.greenCoffeePrice || 0).toFixed(2))
+        + (is250 ? r('Green Coffee for 250g', '₹' + greenCoffeeCost.toFixed(2)) : '')
+        + r('Roasting Loss (' + (cfg.loss || 0) + '%)', '₹' + lossAmt.toFixed(2))
+        + r('Effective Green Cost', '₹' + effectiveCost.toFixed(2), true)
+        + r('Logistics', '₹' + (cfg.logistics || 0).toFixed(2))
+        + r('Handling & Storage', '₹' + (cfg.handling || 0).toFixed(2))
+        + r('Roasting & Gas', '₹' + (cfg.roasting || 0).toFixed(2))
+        + r('Packaging', '₹' + (cfg.packaging || 0).toFixed(2))
+        + (shippingCost > 0 ? r('Website Shipping', '₹' + shippingCost.toFixed(2)) : '')
+        + r('Total Base Cost', '₹' + (log.totalBase || 0).toFixed(2), true)
+        + (commissionPct > 0 ? r('Shopify Commission (' + commissionPct.toFixed(1) + '%)', '₹' + commissionAmt.toFixed(2)) : '')
+        + r('HLC Margin %', (log.premiumPercent || 0).toFixed(1) + '%')
+        + r('HLC Premium', '₹' + (log.premiumAmount || 0).toFixed(2))
+        + '</tbody></table>'
+        + '<table><tbody>'
+        + '<tr class="lp-final"><td>' + priceLbl + '</td><td style="text-align:right;">₹' + (log.finalPrice || 0).toFixed(2) + ' / ' + unit + '</td></tr>'
+        + '</tbody></table>'
+        + (log.bulkQuantity > 0
+            ? '<div class="lp-section">Bulk Order</div><table><tbody>'
+              + r('Quantity', log.bulkQuantity + ' ' + bulkUnit)
+              + r('Order Value', '₹' + (log.finalPrice * log.bulkQuantity).toLocaleString('en-IN', { minimumFractionDigits: 2 }))
+              + r('Total HLC Premium', '₹' + ((log.premiumAmount || 0) * log.bulkQuantity).toLocaleString('en-IN', { minimumFractionDigits: 2 }), true)
+              + '</tbody></table>' : '')
+        + (tierRows
+            ? '<div class="lp-section">Bulk Price Tiers</div>'
+              + '<table><thead><tr><th>Quantity</th><th style="text-align:center;">Discount</th><th style="text-align:right;">Price / ' + unit + '</th></tr></thead>'
+              + '<tbody>' + tierRows + '</tbody></table>' : '')
+        + (log.note ? '<div class="lp-section">Note</div><p style="font-style:italic;color:#555;margin:0.25rem 0 0;">' + log.note + '</p>' : '');
+
+      var area = document.getElementById('logPrintArea');
+      area.innerHTML = html;
+      document.body.classList.add('printing-log');
+      document.title = log.skuName + ' — Price Calculation';
+      window.print();
+      document.body.classList.remove('printing-log');
+      area.innerHTML = '';
+      document.title = 'HLC Pricing Calculator';
     }
 
     function setChannel(value, size) {
