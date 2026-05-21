@@ -596,6 +596,8 @@
       html { font-size: 14px; }
     }
   </style>
+  <!-- Chart.js for Price Tracker -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <!-- Firebase SDK (compat build — works with simple firebase.xxx() calls) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -615,6 +617,7 @@
           <button class="nav-tab active" data-view="calculator">Calculator</button>
           <button class="nav-tab" data-view="skus">Coffee SKUs</button>
           <button class="nav-tab" data-view="logs">History</button>
+          <button class="nav-tab" data-view="pricetracker">Price Tracker</button>
           <button class="nav-tab" data-view="settings">Settings</button>
         </nav>
       </div>
@@ -1095,6 +1098,71 @@
       </div>
 
       <!-- ══════════════════════════════════════════ -->
+      <!--  PRICE TRACKER VIEW                       -->
+      <!-- ══════════════════════════════════════════ -->
+      <div id="pricetracker" class="view">
+        <div class="card" style="margin-bottom:1rem;">
+          <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;">
+            <div style="flex:1;min-width:160px;">
+              <label style="margin-bottom:0.35rem;">Coffee SKU</label>
+              <select id="ptSkuFilter" style="width:100%;">
+                <option value="">— Select a SKU —</option>
+              </select>
+            </div>
+            <div>
+              <label style="margin-bottom:0.35rem;">Bag Size</label>
+              <div style="display:flex;gap:0.5rem;">
+                <button type="button" id="ptSize1kg"  onclick="setPtSize('1kg')"
+                  style="padding:0.4rem 1rem;border:1px solid var(--accent-coffee);border-radius:6px;background:var(--accent-coffee);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">1 kg</button>
+                <button type="button" id="ptSize250g" onclick="setPtSize('250g')"
+                  style="padding:0.4rem 1rem;border:1px solid var(--border-medium);border-radius:6px;background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">250 g</button>
+              </div>
+            </div>
+            <div>
+              <label style="margin-bottom:0.35rem;">Channel</label>
+              <select id="ptChannelFilter" style="width:130px;">
+                <option value="">All</option>
+                <option value="retail">Retail</option>
+                <option value="b2b">B2B</option>
+                <option value="others">Others</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="position:relative;min-height:320px;" id="ptChartCard">
+          <!-- empty state -->
+          <div id="ptEmptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:0.5rem;color:var(--text-tertiary);">
+            <span style="font-size:2rem;">📈</span>
+            <span style="font-size:0.9rem;">Select a SKU to see its price history</span>
+          </div>
+          <canvas id="ptChart" style="display:none;width:100%;"></canvas>
+        </div>
+
+        <!-- Stats row -->
+        <div id="ptStats" style="display:none;margin-top:1rem;display:none;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;">
+            <div class="card" style="text-align:center;padding:0.875rem;">
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">First Price</div>
+              <div id="ptStatFirst" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
+            </div>
+            <div class="card" style="text-align:center;padding:0.875rem;">
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Latest Price</div>
+              <div id="ptStatLatest" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
+            </div>
+            <div class="card" style="text-align:center;padding:0.875rem;">
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Change</div>
+              <div id="ptStatChange" style="font-size:1.1rem;font-weight:700;">—</div>
+            </div>
+            <div class="card" style="text-align:center;padding:0.875rem;">
+              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Data Points</div>
+              <div id="ptStatCount" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ -->
       <!--  SETTINGS VIEW                            -->
       <!-- ══════════════════════════════════════════ -->
       <div id="settings" class="view" style="padding-top:3rem;">
@@ -1502,8 +1570,9 @@
         const viewId = tab.getAttribute('data-view');
         document.getElementById(viewId).classList.add('active');
         if (viewId === 'skus')     renderSkuTable();
-        if (viewId === 'logs')     renderLogs();
-        if (viewId === 'settings') loadSettings();
+        if (viewId === 'logs')         renderLogs();
+        if (viewId === 'settings')     loadSettings();
+        if (viewId === 'pricetracker') { populatePtSkuFilter(); renderPriceChart(); }
         document.getElementById('bagTabBar').style.display     = viewId === 'calculator' ? 'block' : 'none';
         document.getElementById('settingsTabBar').style.display = viewId === 'settings'  ? 'block' : 'none';
         pinBars();
@@ -2114,6 +2183,164 @@
     }
 
     // ============================================
+    // PRICE TRACKER
+    // ============================================
+
+    let ptSize = '1kg';
+    let ptChartInstance = null;
+
+    function populatePtSkuFilter() {
+      const sel = document.getElementById('ptSkuFilter');
+      if (!sel) return;
+      const current = sel.value;
+      sel.innerHTML = '<option value="">— Select a SKU —</option>';
+      skus.filter(s => s.status !== 'inactive').forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        sel.appendChild(opt);
+      });
+      if (current) sel.value = current;
+    }
+
+    function setPtSize(size) {
+      ptSize = size;
+      const btn1   = document.getElementById('ptSize1kg');
+      const btn250 = document.getElementById('ptSize250g');
+      if (!btn1 || !btn250) return;
+      const on  = 'var(--accent-coffee)';
+      const off = 'var(--border-medium)';
+      btn1.style.background   = size === '1kg'  ? on  : 'transparent';
+      btn1.style.color        = size === '1kg'  ? '#fff' : 'var(--text-secondary)';
+      btn1.style.borderColor  = size === '1kg'  ? on  : off;
+      btn250.style.background = size === '250g' ? on  : 'transparent';
+      btn250.style.color      = size === '250g' ? '#fff' : 'var(--text-secondary)';
+      btn250.style.borderColor= size === '250g' ? on  : off;
+      renderPriceChart();
+    }
+
+    function renderPriceChart() {
+      const skuId   = document.getElementById('ptSkuFilter').value;
+      const channel = document.getElementById('ptChannelFilter').value;
+      const canvas  = document.getElementById('ptChart');
+      const empty   = document.getElementById('ptEmptyState');
+      const stats   = document.getElementById('ptStats');
+
+      if (!skuId) {
+        canvas.style.display = 'none';
+        empty.style.display  = 'flex';
+        stats.style.display  = 'none';
+        if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
+        return;
+      }
+
+      // Filter logs for this SKU + bag size + optional channel
+      let points = logs.filter(l =>
+        l.skuId === skuId &&
+        l.bagSize === ptSize &&
+        (channel ? (l.channel || '') === channel : true) &&
+        l.sellingPrice != null
+      ).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      if (points.length === 0) {
+        canvas.style.display = 'none';
+        empty.style.display  = 'flex';
+        empty.querySelector('span:last-child').textContent = 'No saved versions found for this SKU / size / channel combination.';
+        stats.style.display  = 'none';
+        if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
+        return;
+      }
+
+      empty.style.display  = 'none';
+      canvas.style.display = 'block';
+      stats.style.display  = 'grid';
+
+      const labels    = points.map(p => {
+        const d = new Date(p.timestamp);
+        return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'2-digit' });
+      });
+      const sellPrices  = points.map(p => parseFloat(p.sellingPrice)  || 0);
+      const greenPrices = points.map(p => parseFloat(p.greenCoffeePrice) || 0);
+
+      if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
+
+      const ctx = canvas.getContext('2d');
+      ptChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Selling Price (₹)',
+              data: sellPrices,
+              borderColor: '#6B3F1F',
+              backgroundColor: 'rgba(107,63,31,0.08)',
+              pointBackgroundColor: '#6B3F1F',
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              tension: 0.3,
+              fill: true,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Green Coffee Cost (₹/kg)',
+              data: greenPrices,
+              borderColor: '#2D5940',
+              backgroundColor: 'rgba(45,89,64,0.06)',
+              pointBackgroundColor: '#2D5940',
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              tension: 0.3,
+              fill: false,
+              borderDash: [5, 3],
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { font: { family: 'DM Sans, sans-serif', size: 12 }, padding: 16 }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => ' ' + ctx.dataset.label + ': ₹' + ctx.parsed.y.toFixed(2)
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { font: { family: 'DM Sans, sans-serif', size: 11 }, maxRotation: 45 }
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: {
+                font: { family: 'DM Sans, sans-serif', size: 11 },
+                callback: v => '₹' + v.toFixed(0)
+              }
+            }
+          }
+        }
+      });
+
+      // Stats
+      const first  = sellPrices[0];
+      const latest = sellPrices[sellPrices.length - 1];
+      const diff   = latest - first;
+      const pct    = first > 0 ? ((diff / first) * 100).toFixed(1) : 0;
+      document.getElementById('ptStatFirst').textContent  = '₹' + first.toFixed(2);
+      document.getElementById('ptStatLatest').textContent = '₹' + latest.toFixed(2);
+      const changeEl = document.getElementById('ptStatChange');
+      changeEl.textContent = (diff >= 0 ? '+' : '') + '₹' + diff.toFixed(2) + ' (' + pct + '%)';
+      changeEl.style.color = diff > 0 ? '#EA580C' : diff < 0 ? '#2D5940' : 'var(--text-primary)';
+      document.getElementById('ptStatCount').textContent  = points.length;
+    }
+
+    // ============================================
     // SETTINGS
     // ============================================
 
@@ -2298,6 +2525,13 @@
     document.getElementById('logFilterPeriod').addEventListener('change',   () => { currentLogPage = 1; renderLogs(); });
     document.getElementById('logFilterChannel').addEventListener('change',  () => { currentLogPage = 1; renderLogs(); });
     document.getElementById('exportLogsBtn').addEventListener('click',     exportLogs);
+
+    // ============================================
+    // EVENT LISTENERS — Price Tracker
+    // ============================================
+
+    document.getElementById('ptSkuFilter').addEventListener('change',     renderPriceChart);
+    document.getElementById('ptChannelFilter').addEventListener('change', renderPriceChart);
 
     // ============================================
     // EVENT LISTENERS — Settings
