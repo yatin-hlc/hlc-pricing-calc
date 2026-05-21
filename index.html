@@ -595,50 +595,51 @@
     }
 
     @media print {
-      @page { size: A4 landscape; margin: 12mm; }
+      @page { size: A4 portrait; margin: 14mm; }
 
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
 
       body { background: white; margin: 0; padding: 0; }
+      html { font-size: 12px; }
 
-      .header, .nav-tabs, .bag-tabs, #printPdfBtn, #saveVersionBtn, #printPdfBtn250, #saveVersionBtn250,
-      #bagTabBar, #settingsTabBar { display: none !important; }
+      /* Hide all chrome and the input (left) column — only the results card prints */
+      .header, .nav-tabs, .bag-tabs,
+      #printPdfBtn, #saveVersionBtn, #printPdfBtn250, #saveVersionBtn250,
+      #bagTabBar, #settingsTabBar,
+      #printOptionsModal, #logPrintArea { display: none !important; }
 
-      .main-content { padding: 1rem; max-width: 100%; }
+      /* Hide the inputs/left column of the calculator grid */
+      .calculator-grid > div:first-child { display: none !important; }
 
-      .calculator-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 1.5rem; page-break-inside: avoid; }
-      .calculator-grid > div:first-child, .calculator-grid > div:last-child { display: block !important; }
+      /* Results column fills full width */
+      .calculator-grid {
+        display: block !important;
+      }
+      .calculator-grid > div:last-child { display: block !important; width: 100% !important; }
 
-      .card { box-shadow: none; border: 1px solid var(--border-medium); page-break-inside: avoid; background: white !important; padding: 1.5rem; }
-      .card-header { margin-bottom: 1rem; padding-bottom: 0.75rem; }
+      .main-content { padding: 0; max-width: 100%; }
+
+      .card { box-shadow: none; border: 1px solid var(--border-medium); page-break-inside: avoid; background: white !important; padding: 1.25rem; }
+      .card-header { margin-bottom: 0.75rem; padding-bottom: 0.5rem; }
       .card-title    { font-size: 1.1rem; }
       .card-subtitle { font-size: 0.8rem; }
 
-      input[type="number"], input[type="text"], select { border: 1px solid var(--border-medium) !important; background: var(--bg-tertiary) !important; -webkit-print-color-adjust: exact !important; padding: 0.5rem; font-size: 0.9rem; }
-
-      label { font-size: 0.85rem; margin-bottom: 0.25rem; }
-      .form-group { margin-bottom: 1rem; }
-
-      .btn { padding: 0.5rem 1rem; font-size: 0.85rem; border: 1px solid var(--border-medium) !important; }
-      .btn.active { background: var(--accent-coffee) !important; color: white !important; -webkit-print-color-adjust: exact !important; }
-
       .badge { background: rgba(155,151,145,0.2) !important; border: 1px solid var(--border-medium) !important; -webkit-print-color-adjust: exact !important; }
 
-      .subtotal-row { background: var(--accent-amber-light) !important; -webkit-print-color-adjust: exact !important; padding: 0.75rem 1rem; }
+      .subtotal-row { background: var(--accent-amber-light) !important; -webkit-print-color-adjust: exact !important; padding: 0.5rem 0.75rem; }
 
-      .final-price { background: linear-gradient(135deg,var(--accent-coffee) 0%,var(--accent-coffee-light) 100%) !important; -webkit-print-color-adjust: exact !important; color: var(--text-inverse) !important; page-break-inside: avoid; padding: 1.25rem; }
+      .final-price { background: linear-gradient(135deg,var(--accent-coffee) 0%,var(--accent-coffee-light) 100%) !important; -webkit-print-color-adjust: exact !important; color: var(--text-inverse) !important; page-break-inside: avoid; padding: 1rem; }
 
-      .bulk-order-green { background: var(--accent-green-light) !important; border: 2px solid var(--accent-green) !important; -webkit-print-color-adjust: exact !important; padding: 1rem; }
-      .bulk-order-blue  { background: var(--accent-blue-light) !important;  border: 2px solid var(--accent-blue) !important;  -webkit-print-color-adjust: exact !important; padding: 1rem; }
+      .bulk-order-green { background: var(--accent-green-light) !important; border: 2px solid var(--accent-green) !important; -webkit-print-color-adjust: exact !important; padding: 0.75rem; }
+      .bulk-order-blue  { background: var(--accent-blue-light) !important;  border: 2px solid var(--accent-blue) !important;  -webkit-print-color-adjust: exact !important; padding: 0.75rem; }
 
       #togglePremiumCalc, #togglePremiumCalc250, #premiumCalcDetails, #premiumCalcDetails250 { display: none !important; }
 
-      .cost-row   { padding: 0.65rem 0; font-size: 0.9rem; }
-      .cost-label { font-size: 0.85rem; }
-      .cost-value { font-size: 0.95rem; }
+      .cost-row   { padding: 0.5rem 0; font-size: 0.875rem; }
+      .cost-label { font-size: 0.8rem; }
+      .cost-value { font-size: 0.875rem; }
 
       .card, .final-price { page-break-inside: avoid; }
-      html { font-size: 14px; }
 
       /* Log print mode — hide everything except the log print area */
       body.printing-log .app-container,
