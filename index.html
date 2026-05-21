@@ -2052,14 +2052,38 @@
               + '<tbody>' + tierRows + '</tbody></table>' : '')
         + (log.note ? '<div class="lp-section">Note</div><p style="font-style:italic;color:#555;margin:0.25rem 0 0;">' + log.note + '</p>' : '');
 
-      var area = document.getElementById('logPrintArea');
+      var area         = document.getElementById('logPrintArea');
+      var appContainer = document.querySelector('.app-container');
+      var bagTabBar    = document.getElementById('bagTabBar');
+      var settingsBar  = document.getElementById('settingsTabBar');
+      var signInOvl    = document.getElementById('signInOverlay');
+
+      // Populate print area
       area.innerHTML = html;
-      document.body.classList.add('printing-log');
       document.title = log.skuName + ' — Price Calculation';
-      window.print();
-      document.body.classList.remove('printing-log');
-      area.innerHTML = '';
-      document.title = 'HLC Pricing Calculator';
+
+      // Hide everything except the print area using inline styles (beats all CSS specificity)
+      if (appContainer) appContainer.style.display = 'none';
+      if (bagTabBar)    bagTabBar.style.display    = 'none';
+      if (settingsBar)  settingsBar.style.display  = 'none';
+      if (signInOvl)    signInOvl.style.display    = 'none';
+      area.style.display = 'block';
+
+      function restoreAfterPrint() {
+        if (appContainer) appContainer.style.display = '';
+        if (bagTabBar)    bagTabBar.style.display    = '';
+        if (settingsBar)  settingsBar.style.display  = '';
+        if (signInOvl)    signInOvl.style.display    = '';
+        area.style.display = 'none';
+        area.innerHTML = '';
+        document.title = 'HLC Pricing Calculator';
+      }
+
+      // afterprint fires on desktop + iOS Safari 13+ + Android Chrome after dialog closes
+      window.addEventListener('afterprint', restoreAfterPrint, { once: true });
+
+      // Small delay ensures browser reflows the hidden elements before capturing print
+      setTimeout(function() { window.print(); }, 60);
     }
 
     function setChannel(value, size) {
