@@ -595,51 +595,50 @@
     }
 
     @media print {
-      @page { size: A4 portrait; margin: 14mm; }
+      @page { size: A4 portrait; margin: 10mm; }
 
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
 
       body { background: white; margin: 0; padding: 0; }
-      html { font-size: 12px; }
+      html { font-size: 11px; }
 
-      /* Hide all chrome and the input (left) column — only the results card prints */
+      /* Hide chrome and non-print UI */
       .header, .nav-tabs, .bag-tabs,
       #printPdfBtn, #saveVersionBtn, #printPdfBtn250, #saveVersionBtn250,
       #bagTabBar, #settingsTabBar,
       #printOptionsModal, #logPrintArea { display: none !important; }
 
-      /* Hide the inputs/left column of the calculator grid */
-      .calculator-grid > div:first-child { display: none !important; }
+      /* Show print logo */
+      #calcPrintLogo { display: block !important; }
 
-      /* Results column fills full width */
-      .calculator-grid {
-        display: block !important;
-      }
-      .calculator-grid > div:last-child { display: block !important; width: 100% !important; }
+      /* Both columns print side by side */
+      .calculator-grid { display: grid !important; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      .calculator-grid > div { display: block !important; width: 100% !important; }
 
       .main-content { padding: 0; max-width: 100%; }
 
-      .card { box-shadow: none; border: 1px solid var(--border-medium); page-break-inside: avoid; background: white !important; padding: 1.25rem; }
-      .card-header { margin-bottom: 0.75rem; padding-bottom: 0.5rem; }
-      .card-title    { font-size: 1.1rem; }
-      .card-subtitle { font-size: 0.8rem; }
+      /* Allow card to flow naturally across page — only final-price block is kept together */
+      .card { box-shadow: none; border: none; background: white !important; padding: 0.75rem 0; }
+      .card-header { margin-bottom: 0.5rem; padding-bottom: 0.4rem; }
+      .card-title    { font-size: 1rem; }
+      .card-subtitle { font-size: 0.75rem; }
 
       .badge { background: rgba(155,151,145,0.2) !important; border: 1px solid var(--border-medium) !important; -webkit-print-color-adjust: exact !important; }
 
-      .subtotal-row { background: var(--accent-amber-light) !important; -webkit-print-color-adjust: exact !important; padding: 0.5rem 0.75rem; }
+      .subtotal-row { background: var(--accent-amber-light) !important; -webkit-print-color-adjust: exact !important; padding: 0.35rem 0.6rem; }
 
-      .final-price { background: linear-gradient(135deg,var(--accent-coffee) 0%,var(--accent-coffee-light) 100%) !important; -webkit-print-color-adjust: exact !important; color: var(--text-inverse) !important; page-break-inside: avoid; padding: 1rem; }
+      .final-price { background: linear-gradient(135deg,var(--accent-coffee) 0%,var(--accent-coffee-light) 100%) !important; -webkit-print-color-adjust: exact !important; color: var(--text-inverse) !important; page-break-inside: avoid; padding: 0.75rem 1rem; margin-top: 0.5rem; border-radius: 8px; }
 
-      .bulk-order-green { background: var(--accent-green-light) !important; border: 2px solid var(--accent-green) !important; -webkit-print-color-adjust: exact !important; padding: 0.75rem; }
-      .bulk-order-blue  { background: var(--accent-blue-light) !important;  border: 2px solid var(--accent-blue) !important;  -webkit-print-color-adjust: exact !important; padding: 0.75rem; }
+      .bulk-order-green { background: var(--accent-green-light) !important; border: 2px solid var(--accent-green) !important; -webkit-print-color-adjust: exact !important; padding: 0.5rem 0.75rem; }
+      .bulk-order-blue  { background: var(--accent-blue-light) !important;  border: 2px solid var(--accent-blue) !important;  -webkit-print-color-adjust: exact !important; padding: 0.5rem 0.75rem; }
 
       #togglePremiumCalc, #togglePremiumCalc250, #premiumCalcDetails, #premiumCalcDetails250 { display: none !important; }
 
-      .cost-row   { padding: 0.5rem 0; font-size: 0.875rem; }
-      .cost-label { font-size: 0.8rem; }
-      .cost-value { font-size: 0.875rem; }
+      .cost-row   { padding: 0.3rem 0; font-size: 0.82rem; border-bottom: 1px solid #f0ece8; }
+      .cost-label { font-size: 0.78rem; }
+      .cost-value { font-size: 0.82rem; }
 
-      .card, .final-price { page-break-inside: avoid; }
+      .final-price { page-break-inside: avoid; }
 
       /* Log print mode — hide everything except the log print area */
       body.printing-log .app-container,
@@ -694,6 +693,12 @@
       <!--  CALCULATOR VIEW                          -->
       <!-- ══════════════════════════════════════════ -->
       <div id="calculator" class="view active">
+
+        <!-- Print-only logo header — hidden on screen, shown only when printing calculator -->
+        <div id="calcPrintLogo" style="display:none; margin-bottom:1.5rem; padding-bottom:0.75rem; border-bottom:2px solid #3C2415;">
+          <img id="calcPrintLogoImg" src="" style="height:52px; width:auto; display:block; margin-bottom:0.4rem;">
+          <div style="font-size:0.75rem; color:#9B8578; letter-spacing:0.08em; text-transform:uppercase;">Pricing Calculator</div>
+        </div>
 
         <!-- Bag-size tabs moved to fixed bar outside app-container -->
 
@@ -1960,9 +1965,13 @@
       const skuId   = document.getElementById('sku' + sfx).value;
       const skuName = skuId ? (skus.find(s => s.id === skuId)?.name ?? 'Calculation') : 'Calculation';
       const origTitle = document.title;
-      document.title  = `${skuName} ${size} Price Calculation`;
+      document.title  = skuName + ' ' + size + ' Price Calculation';
+      // Inject logo src into print logo element
+      var logoEl = document.querySelector('.logo img');
+      var printLogoImg = document.getElementById('calcPrintLogoImg');
+      if (logoEl && printLogoImg) printLogoImg.src = logoEl.src;
       window.print();
-      setTimeout(() => { document.title = origTitle; }, 100);
+      setTimeout(function() { document.title = origTitle; }, 100);
     }
 
     function printLog(logId) {
