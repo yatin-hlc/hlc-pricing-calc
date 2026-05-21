@@ -2308,6 +2308,16 @@
               }
             </div>
 
+            <!-- Bulk tiers toggle for this log entry -->
+            <div id="logBulkWrap_${log.id}" style="margin-top:0.75rem;">
+              <button onclick="toggleLogBulkTiers('${log.id}')"
+                id="logBulkBtn_${log.id}"
+                style="background:transparent;border:1px dashed var(--border-medium);border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;color:var(--text-tertiary);font-size:0.75rem;font-weight:500;font-family:inherit;transition:all 0.2s;">
+                📦 Show Bulk Tiers
+              </button>
+              <div id="logBulkPanel_${log.id}" style="display:none;margin-top:0.5rem;background:var(--bg-tertiary);border-radius:8px;padding:0.75rem;"></div>
+            </div>
+
             <div style="display:flex;justify-content:flex-end;margin-top:0.875rem;padding-top:0.75rem;border-top:1px solid var(--border-light);">
               <button onclick="printLog('${log.id}')"
                 style="background:transparent;border:1px solid var(--border-medium);border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;color:var(--text-secondary);font-size:0.75rem;font-weight:600;transition:all 0.2s;display:flex;align-items:center;gap:0.375rem;"
@@ -2479,6 +2489,43 @@
       saveData('bulkTierDiscounts', bulkTierDiscounts);
       renderBulkTiers(size);
     }
+
+    // Bulk tiers toggle inside a history card
+    window.toggleLogBulkTiers = function(logId) {
+      const btn   = document.getElementById('logBulkBtn_'   + logId);
+      const panel = document.getElementById('logBulkPanel_' + logId);
+      if (!btn || !panel) return;
+      const open = panel.style.display === 'none';
+      panel.style.display = open ? 'block' : 'none';
+      btn.textContent     = open ? '📦 Hide Bulk Tiers' : '📦 Show Bulk Tiers';
+      btn.style.borderStyle = open ? 'solid'   : 'dashed';
+      btn.style.color       = open ? 'var(--accent-coffee)' : 'var(--text-tertiary)';
+      btn.style.borderColor = open ? 'var(--accent-coffee)' : 'var(--border-medium)';
+      if (!open) return;
+
+      const log       = logs.find(l => l.id === logId);
+      if (!log) return;
+      const basePrice = parseFloat(log.finalPrice) || 0;
+      const unit      = log.bagSize === '250g' ? 'bag' : 'kg';
+
+      const rows = BULK_TIERS.map(tier => {
+        const disc  = tier.tierKey ? (bulkTierDiscounts[tier.tierKey] || 0) : 0;
+        const price = basePrice * (1 - disc / 100);
+        const isBase = !tier.tierKey;
+        return '<tr style="border-bottom:1px solid var(--border-light);">'
+          + '<td style="padding:0.35rem 0.5rem;font-size:0.8rem;color:' + (isBase ? 'var(--text-secondary)' : 'var(--text-primary)') + ';font-weight:' + (isBase ? '400' : '500') + ';">' + tier.label + '</td>'
+          + '<td style="padding:0.35rem 0.5rem;font-size:0.8rem;text-align:center;color:var(--text-secondary);">' + (isBase ? '—' : disc + '%') + '</td>'
+          + '<td style="padding:0.35rem 0.5rem;font-size:0.8rem;text-align:right;font-weight:' + (isBase ? '400' : '700') + ';color:' + (isBase ? 'var(--text-secondary)' : 'var(--accent-coffee)') + ';font-variant-numeric:tabular-nums;">₹' + price.toFixed(2) + '/' + unit + '</td>'
+          + '</tr>';
+      }).join('');
+
+      panel.innerHTML = '<table style="width:100%;border-collapse:collapse;">'
+        + '<thead><tr style="border-bottom:2px solid var(--border-medium);">'
+        + '<th style="text-align:left;padding:0.3rem 0.5rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Quantity</th>'
+        + '<th style="text-align:center;padding:0.3rem 0.5rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Discount</th>'
+        + '<th style="text-align:right;padding:0.3rem 0.5rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Price / ' + unit + '</th>'
+        + '</tr></thead><tbody>' + rows + '</tbody></table>';
+    };
 
     // ============================================
     // PRICE TRACKER
