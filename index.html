@@ -2077,19 +2077,22 @@
       area.innerHTML = html;
       document.title = log.skuName + ' — Price Calculation';
 
-      // Hide everything except the print area using inline styles (beats all CSS specificity)
+      // 1. Add CSS class — this makes body.printing-log #logPrintArea { display:block !important }
+      //    win over the generic @media print rule that hides #logPrintArea
+      document.body.classList.add('printing-log');
+
+      // 2. Also hide app chrome with inline styles (inline + class = belt AND suspenders for mobile)
       if (appContainer) appContainer.style.display = 'none';
       if (bagTabBar)    bagTabBar.style.display    = 'none';
       if (settingsBar)  settingsBar.style.display  = 'none';
       if (signInOvl)    signInOvl.style.display    = 'none';
-      area.style.display = 'block';
 
       function restoreAfterPrint() {
+        document.body.classList.remove('printing-log');
         if (appContainer) appContainer.style.display = '';
         if (bagTabBar)    bagTabBar.style.display    = '';
         if (settingsBar)  settingsBar.style.display  = '';
         if (signInOvl)    signInOvl.style.display    = '';
-        area.style.display = 'none';
         area.innerHTML = '';
         document.title = 'HLC Pricing Calculator';
       }
