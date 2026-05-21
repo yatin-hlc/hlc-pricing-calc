@@ -2142,10 +2142,10 @@
             .filter(e => e.skuId === sku.id)
             .sort((a, b) => (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth)); // newest first
           if (entries.length === 0) return;
-          opts += `<optgroup label="${p.name} — ${sku.name}">`;
+          opts += `<optgroup label="${p.name}">`;
           entries.forEach(e => {
-            const base = e.baseGreenPrice ? ' · ₹' + parseFloat(e.baseGreenPrice).toFixed(0) + '/kg' : '';
-            opts += `<option value="${e.id}">${e.cropMonth}/${e.cropYear}${base}</option>`;
+            const base = e.baseGreenPrice ? '  ₹' + parseFloat(e.baseGreenPrice).toFixed(0) + '/kg' : '';
+            opts += `<option value="${e.id}">${sku.name}  —  ${e.cropMonth}/${e.cropYear}${base}</option>`;
           });
           opts += '</optgroup>';
         });
