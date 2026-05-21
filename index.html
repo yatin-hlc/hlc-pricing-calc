@@ -1999,7 +1999,10 @@
           + '<td style="padding:4px 8px;text-align:right;font-weight:700;">₹' + price.toFixed(2) + '/' + unit + '</td></tr>';
       }).join('');
 
-      var html = '<h1>Half Light Coffee Roasters</h1>'
+      var logoEl  = document.querySelector('.logo img');
+      var logoTag = logoEl ? '<img src="' + logoEl.src + '" style="height:56px;width:auto;display:block;margin-bottom:0.75rem;">' : '';
+
+      var html = logoTag + '<h1>Half Light Coffee Roasters</h1>'
         + '<div class="lp-meta">' + log.skuName + '  ·  ' + (is250 ? '250 g bag' : '1 kg bag')
         + (channelLabel ? '  ·  ' + channelLabel : '') + '<br>' + dateStr + '</div>'
         + '<div class="lp-section">Cost Breakdown</div>'
