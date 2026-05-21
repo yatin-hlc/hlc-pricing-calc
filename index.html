@@ -2260,7 +2260,7 @@
         return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'2-digit' });
       });
       const sellPrices  = points.map(p => parseFloat(p.finalPrice || p.sellingPrice) || 0);
-      const greenPrices = points.map(p => parseFloat(p.greenCoffeePrice) || 0);
+      const greenPrices = points.map(p => parseFloat(p.greenCoffeeCost || p.greenCoffeePrice) || 0);
 
       if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
 
@@ -2283,7 +2283,7 @@
               yAxisID: 'y'
             },
             {
-              label: 'Green Coffee Cost (₹/kg)',
+              label: 'Green Coffee Cost (₹/bag)',
               data: greenPrices,
               borderColor: '#2D5940',
               backgroundColor: 'rgba(45,89,64,0.06)',
