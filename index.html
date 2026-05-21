@@ -637,7 +637,7 @@
         <!-- Bag-size tabs moved to fixed bar outside app-container -->
 
         <!-- ── 1 kg sub-view ── -->
-        <div id="bag1kg" class="bag-view active">
+        <div id="bag1kg" class="bag-view">
           <div class="calculator-grid">
 
             <!-- Input -->
@@ -842,7 +842,7 @@
         </div><!-- /bag1kg -->
 
         <!-- ── 250 g sub-view ── -->
-        <div id="bag250g" class="bag-view">
+        <div id="bag250g" class="bag-view active">
           <div class="calculator-grid">
 
             <!-- Input -->
@@ -1213,7 +1213,7 @@
       <div id="settings" class="view" style="padding-top:3rem;">
 
         <!-- 1 kg settings panel -->
-        <div id="settingsPanel1kg" class="settings-panel active">
+        <div id="settingsPanel1kg" class="settings-panel">
         <div class="settings-section">
           <h2 class="settings-section-title">Default Cost Parameters — 1 kg Bag</h2>
           <p class="card-subtitle" style="margin-bottom:1.5rem;">These values auto-fill in the 1 kg calculator</p>
@@ -1279,7 +1279,7 @@
         </div><!-- /settingsPanel1kg -->
 
         <!-- 250 g settings panel -->
-        <div id="settingsPanel250g" class="settings-panel">
+        <div id="settingsPanel250g" class="settings-panel active">
         <div class="settings-section">
           <h2 class="settings-section-title">Default Cost Parameters — 250 g Bag</h2>
           <p class="card-subtitle" style="margin-bottom:1.5rem;">These values auto-fill in the 250 g calculator. Green coffee cost is automatically scaled to 250g (¼ of ₹/kg price).</p>
@@ -1359,16 +1359,16 @@
   <!-- Bag-size tab bar: fixed below header, shown on calculator view -->
   <div id="bagTabBar">
     <div>
-      <button class="bag-tab active" id="bagTab1kg"  data-bag="bag1kg">1 kg Bag</button>
-      <button class="bag-tab"        id="bagTab250g" data-bag="bag250g">250 g Bag</button>
+      <button class="bag-tab active" id="bagTab250g" data-bag="bag250g">250 g Bag</button>
+      <button class="bag-tab"        id="bagTab1kg"  data-bag="bag1kg">1 kg Bag</button>
     </div>
   </div>
 
   <!-- Settings sub-tab bar: outside .app-container (no zoom ancestor) so position:fixed works -->
   <div id="settingsTabBar" style="display:none;">
     <div>
-      <button class="settings-tab active" id="settingsTab1kg"  data-panel="settingsPanel1kg">1 kg Bag</button>
-      <button class="settings-tab"        id="settingsTab250g" data-panel="settingsPanel250g">250 g Bag</button>
+      <button class="settings-tab active" id="settingsTab250g" data-panel="settingsPanel250g">250 g Bag</button>
+      <button class="settings-tab"        id="settingsTab1kg"  data-panel="settingsPanel1kg">1 kg Bag</button>
     </div>
   </div>
 
