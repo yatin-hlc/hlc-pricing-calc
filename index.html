@@ -1574,36 +1574,6 @@
   <div id="toastContainer" class="toast-container"></div>
   <div id="logPrintArea" style="display:none;"></div>
 
-  <!-- Print Options Modal -->
-  <div id="printOptionsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:3000;align-items:center;justify-content:center;">
-    <div style="background:var(--bg-primary);border-radius:14px;padding:1.75rem 2rem;width:340px;box-shadow:0 24px 64px rgba(0,0,0,0.22);">
-      <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--accent-coffee);margin-bottom:1.25rem;">Print Options</div>
-
-      <div style="margin-bottom:1.25rem;">
-        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-tertiary);margin-bottom:0.5rem;">Orientation</div>
-        <div style="display:flex;gap:0.5rem;">
-          <button class="print-opt-btn active" id="poPortrait"  onclick="setPrintOpt('orientation','portrait')"  style="flex:1;padding:0.5rem;border-radius:8px;border:1.5px solid var(--accent-coffee);background:var(--accent-coffee);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">Portrait</button>
-          <button class="print-opt-btn"        id="poLandscape" onclick="setPrintOpt('orientation','landscape')" style="flex:1;padding:0.5rem;border-radius:8px;border:1.5px solid var(--border-medium);background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">Landscape</button>
-        </div>
-      </div>
-
-      <div style="margin-bottom:1.75rem;">
-        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-tertiary);margin-bottom:0.5rem;">Scale</div>
-        <div style="display:flex;gap:0.5rem;">
-          <button class="print-opt-btn" id="poScale75"  onclick="setPrintOpt('scale','75')"  style="flex:1;padding:0.5rem;border-radius:8px;border:1.5px solid var(--border-medium);background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">75%</button>
-          <button class="print-opt-btn" id="poScale85"  onclick="setPrintOpt('scale','85')"  style="flex:1;padding:0.5rem;border-radius:8px;border:1.5px solid var(--border-medium);background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">85%</button>
-          <button class="print-opt-btn active" id="poScale100" onclick="setPrintOpt('scale','100')" style="flex:1;padding:0.5rem;border-radius:8px;border:1.5px solid var(--accent-coffee);background:var(--accent-coffee);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">100%</button>
-          <button class="print-opt-btn" id="poScale115" onclick="setPrintOpt('scale','115')" style="flex:1;padding:0.5rem;border-radius:8px;border:1.5px solid var(--border-medium);background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">115%</button>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:0.75rem;">
-        <button onclick="closePrintOptions()" style="flex:1;padding:0.625rem;border-radius:8px;border:1px solid var(--border-medium);background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;cursor:pointer;">Cancel</button>
-        <button onclick="executePrint()" style="flex:2;padding:0.625rem;border-radius:8px;border:none;background:var(--accent-coffee);color:#fff;font-family:inherit;font-size:0.875rem;font-weight:700;cursor:pointer;">🖨 Print / Save as PDF</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ══════════════════════════════════════════ -->
   <!--  SIGN-IN OVERLAY                         -->
   <!-- ══════════════════════════════════════════ -->
@@ -1983,63 +1953,14 @@
       return { greenCoffeePrice, greenCoffeeCost, premiumPercent, totalBase, premiumAmount, finalPrice };
     }
 
-    // ── Print Options ────────────────────────────────────────────────
-    var _printOpts = { orientation: 'portrait', scale: '100' };
-    var _printCallback = null;
-
-    function setPrintOpt(key, val) {
-      _printOpts[key] = val;
-      var group = key === 'orientation' ? ['poPortrait','poLandscape'] : ['poScale75','poScale85','poScale100','poScale115'];
-      var activeId = key === 'orientation'
-        ? (val === 'portrait' ? 'poPortrait' : 'poLandscape')
-        : 'poScale' + val;
-      group.forEach(function(id) {
-        var btn = document.getElementById(id);
-        if (!btn) return;
-        var on = id === activeId;
-        btn.style.background   = on ? 'var(--accent-coffee)' : 'transparent';
-        btn.style.color        = on ? '#fff' : 'var(--text-secondary)';
-        btn.style.borderColor  = on ? 'var(--accent-coffee)' : 'var(--border-medium)';
-      });
-    }
-
-    function openPrintOptions(cb) {
-      _printCallback = cb;
-      var modal = document.getElementById('printOptionsModal');
-      modal.style.display = 'flex';
-    }
-
-    function closePrintOptions() {
-      document.getElementById('printOptionsModal').style.display = 'none';
-      _printCallback = null;
-    }
-
-    function executePrint() {
-      closePrintOptions();
-      var styleEl = document.createElement('style');
-      styleEl.id  = 'printOverride';
-      styleEl.textContent = '@page{size:A4 ' + _printOpts.orientation + ';margin:12mm;}'
-        + 'body{zoom:' + _printOpts.scale + '% !important;}';
-      document.head.appendChild(styleEl);
-      if (_printCallback) _printCallback();
-      setTimeout(function() {
-        var el = document.getElementById('printOverride');
-        if (el) el.remove();
-      }, 500);
-    }
-    // ── end Print Options ─────────────────────────────────────────────
-
-    function printPdf(size) {
-      size = size || '1kg';
-      var sfx     = size === '250g' ? '250' : '';
-      var skuId   = document.getElementById('sku' + sfx).value;
-      var skuName = skuId ? ((skus.find(function(s){ return s.id === skuId; }) || {}).name || 'Calculation') : 'Calculation';
-      openPrintOptions(function() {
-        var origTitle   = document.title;
-        document.title  = skuName + ' ' + size + ' Price Calculation';
-        window.print();
-        setTimeout(function() { document.title = origTitle; }, 100);
-      });
+    function printPdf(size = '1kg') {
+      const sfx     = size === '250g' ? '250' : '';
+      const skuId   = document.getElementById('sku' + sfx).value;
+      const skuName = skuId ? (skus.find(s => s.id === skuId)?.name ?? 'Calculation') : 'Calculation';
+      const origTitle = document.title;
+      document.title  = `${skuName} ${size} Price Calculation`;
+      window.print();
+      setTimeout(() => { document.title = origTitle; }, 100);
     }
 
     function printLog(logId) {
@@ -2117,15 +2038,12 @@
 
       var area = document.getElementById('logPrintArea');
       area.innerHTML = html;
-
-      openPrintOptions(function() {
-        document.body.classList.add('printing-log');
-        document.title = log.skuName + ' — Price Calculation';
-        window.print();
-        document.body.classList.remove('printing-log');
-        area.innerHTML = '';
-        document.title = 'HLC Pricing Calculator';
-      });
+      document.body.classList.add('printing-log');
+      document.title = log.skuName + ' — Price Calculation';
+      window.print();
+      document.body.classList.remove('printing-log');
+      area.innerHTML = '';
+      document.title = 'HLC Pricing Calculator';
     }
 
     function setChannel(value, size) {
