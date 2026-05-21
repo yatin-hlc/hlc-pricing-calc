@@ -1102,8 +1102,8 @@
       <!-- ══════════════════════════════════════════ -->
       <div id="pricetracker" class="view">
         <div class="card" style="margin-bottom:1rem;">
-          <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;">
-            <div style="flex:1;min-width:160px;">
+          <div style="display:grid;grid-template-columns:1fr auto auto;gap:1rem;align-items:end;">
+            <div>
               <label style="margin-bottom:0.35rem;">Coffee SKU</label>
               <select id="ptSkuFilter" style="width:100%;">
                 <option value="">— Select a SKU —</option>
@@ -1113,9 +1113,9 @@
               <label style="margin-bottom:0.35rem;">Bag Size</label>
               <div style="display:flex;gap:0.5rem;">
                 <button type="button" id="ptSize1kg"  onclick="setPtSize('1kg')"
-                  style="padding:0.4rem 1rem;border:1px solid var(--accent-coffee);border-radius:6px;background:var(--accent-coffee);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">1 kg</button>
+                  style="padding:0.4rem 1rem;border:1px solid var(--accent-coffee);border-radius:6px;background:var(--accent-coffee);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">1 kg</button>
                 <button type="button" id="ptSize250g" onclick="setPtSize('250g')"
-                  style="padding:0.4rem 1rem;border:1px solid var(--border-medium);border-radius:6px;background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">250 g</button>
+                  style="padding:0.4rem 1rem;border:1px solid var(--border-medium);border-radius:6px;background:transparent;color:var(--text-secondary);font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">250 g</button>
               </div>
             </div>
             <div>
