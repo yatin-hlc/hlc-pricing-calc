@@ -238,6 +238,46 @@
     input:disabled, select:disabled { background: var(--bg-tertiary); cursor: not-allowed; opacity: 0.6; }
     input:focus, select:focus { outline: none; border-color: var(--accent-coffee); box-shadow: 0 0 0 3px rgba(92,61,46,0.1); }
 
+    /* ── Custom SKU Dropdown ── */
+    .sku-dd { position: relative; width: 100%; }
+    .sku-dd-trigger {
+      width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-medium);
+      border-radius: 8px; background: var(--bg-secondary); cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem; color: var(--text-primary);
+      text-align: left; transition: all 0.2s;
+    }
+    .sku-dd-trigger:hover { border-color: var(--accent-coffee); }
+    .sku-dd-trigger.open  { border-color: var(--accent-coffee); box-shadow: 0 0 0 3px rgba(92,61,46,0.1); border-radius: 8px 8px 0 0; }
+    .sku-dd-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sku-dd-label.placeholder { color: var(--text-tertiary); }
+    .sku-dd-arrow { flex-shrink: 0; font-size: 0.75rem; color: var(--text-tertiary); transition: transform 0.2s; }
+    .sku-dd-trigger.open .sku-dd-arrow { transform: rotate(180deg); }
+    .sku-dd-panel {
+      display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 300;
+      background: var(--bg-primary); border: 1px solid var(--accent-coffee);
+      border-top: none; border-radius: 0 0 10px 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 280px; overflow-y: auto;
+    }
+    .sku-dd-panel.open { display: block; }
+    .sku-dd-group-label {
+      padding: 0.6rem 1rem 0.2rem; font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent-coffee);
+      border-top: 1px solid var(--border-light);
+    }
+    .sku-dd-group-label:first-child { border-top: none; }
+    .sku-dd-option {
+      padding: 0.55rem 1rem 0.55rem 1.5rem; font-size: 0.9rem; cursor: pointer;
+      color: var(--text-primary); display: flex; justify-content: space-between;
+      align-items: baseline; gap: 1rem; transition: background 0.12s;
+    }
+    .sku-dd-option:hover { background: var(--bg-tertiary); }
+    .sku-dd-option.selected { color: var(--accent-coffee); font-weight: 600; background: var(--bg-secondary); }
+    .sku-dd-option-name { font-weight: 600; }
+    .sku-dd-option-meta { font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; }
+    .sku-dd-option.selected .sku-dd-option-meta { color: var(--accent-coffee); opacity: 0.75; }
+    .sku-dd-empty { padding: 0.75rem 1rem; color: var(--text-tertiary); font-size: 0.875rem; font-style: italic; }
+
     .currency-prefix {
       position: absolute;
       left: 1rem;
@@ -648,8 +688,15 @@
               </div>
 
               <div class="form-group">
-                <label for="sku" class="required">Select Coffee SKU</label>
-                <select id="sku"><option value="">-- Select a Coffee SKU --</option></select>
+                <label class="required">Select Coffee SKU</label>
+                <div class="sku-dd" id="skuDd">
+                  <button type="button" class="sku-dd-trigger" id="skuDdTrigger" onclick="toggleSkuDd('skuDd')">
+                    <span class="sku-dd-label placeholder" id="skuDdLabel">— Select a crop —</span>
+                    <span class="sku-dd-arrow">▼</span>
+                  </button>
+                  <div class="sku-dd-panel" id="skuDdPanel"></div>
+                </div>
+                <select id="sku" style="display:none"></select>
               </div>
 
               <div class="form-group">
@@ -853,8 +900,15 @@
               </div>
 
               <div class="form-group">
-                <label for="sku250" class="required">Select Coffee SKU</label>
-                <select id="sku250"><option value="">-- Select a Coffee SKU --</option></select>
+                <label class="required">Select Coffee SKU</label>
+                <div class="sku-dd" id="skuDd250">
+                  <button type="button" class="sku-dd-trigger" id="skuDdTrigger250" onclick="toggleSkuDd('skuDd250')">
+                    <span class="sku-dd-label placeholder" id="skuDdLabel250">— Select a crop —</span>
+                    <span class="sku-dd-arrow">▼</span>
+                  </button>
+                  <div class="sku-dd-panel" id="skuDdPanel250"></div>
+                </div>
+                <select id="sku250" style="display:none"></select>
               </div>
 
               <div class="form-group">
@@ -2128,11 +2182,97 @@
       row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
     };
 
-    function updateSkuSelect() {
-      // Calculator dropdowns: optgroup = "Producer — SKU Name", options = crop entries
-      const liveProducers = producers.filter(p => p.status === 'live');
-      const placeholder   = '<option value="">— Select a crop —</option>';
+    // ── Custom SKU Dropdown logic ──────────────────────────────────────
+    function toggleSkuDd(ddId) {
+      const dd      = document.getElementById(ddId);
+      const trigger = dd.querySelector('.sku-dd-trigger');
+      const panel   = dd.querySelector('.sku-dd-panel');
+      const isOpen  = panel.classList.contains('open');
+      // close all dropdowns first
+      document.querySelectorAll('.sku-dd-panel.open').forEach(p => {
+        p.classList.remove('open');
+        p.closest('.sku-dd').querySelector('.sku-dd-trigger').classList.remove('open');
+      });
+      if (!isOpen) { panel.classList.add('open'); trigger.classList.add('open'); }
+    }
 
+    function pickSkuDdOption(ddId, value, labelHtml) {
+      const dd       = document.getElementById(ddId);
+      const labelEl  = dd.querySelector('.sku-dd-label');
+      const panel    = dd.querySelector('.sku-dd-panel');
+      const trigger  = dd.querySelector('.sku-dd-trigger');
+      // update label
+      labelEl.innerHTML = labelHtml;
+      labelEl.classList.toggle('placeholder', !value);
+      // mark selected
+      panel.querySelectorAll('.sku-dd-option').forEach(o => o.classList.toggle('selected', o.dataset.value === value));
+      // close
+      panel.classList.remove('open');
+      trigger.classList.remove('open');
+      // sync hidden select + fire change
+      const selId    = ddId === 'skuDd' ? 'sku' : 'sku250';
+      const hiddenSel = document.getElementById(selId);
+      hiddenSel.value = value;
+      hiddenSel.dispatchEvent(new Event('change'));
+    }
+
+    function buildSkuDdPanel(ddId, liveProducers) {
+      const dd      = document.getElementById(ddId);
+      if (!dd) return;
+      const selId   = ddId === 'skuDd' ? 'sku' : 'sku250';
+      const cur     = document.getElementById(selId).value;
+      const panel   = dd.querySelector('.sku-dd-panel');
+      const labelEl = dd.querySelector('.sku-dd-label');
+
+      let html = '<div class="sku-dd-option' + (!cur ? ' selected' : '') + '" data-value="" onclick="pickSkuDdOption(\'' + ddId + '\', \'\', \'— Select a crop —\')" style="color:var(--text-tertiary);padding-left:1rem;">— Select a crop —</div>';
+      let hasAny = false;
+
+      liveProducers.forEach(function(p) {
+        const pSkus = skus.filter(function(s) { return s.producerId === p.id && (s.status === 'live' || s.status === 'active'); })
+                          .sort(function(a, b) { return a.name.localeCompare(b.name); });
+        pSkus.forEach(function(sku) {
+          const entries = cropEntries.filter(function(e) { return e.skuId === sku.id; })
+            .sort(function(a, b) { return (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth); });
+          if (!entries.length) return;
+          hasAny = true;
+          html += '<div class="sku-dd-group-label">' + p.name + '</div>';
+          entries.forEach(function(e) {
+            const price = e.baseGreenPrice ? '₹' + parseFloat(e.baseGreenPrice).toFixed(0) + '/kg' : '';
+            const isSel = e.id === cur;
+            const optLabel = '<span class="sku-dd-option-name">' + sku.name + '</span>';
+            const optMeta  = '<span class="sku-dd-option-meta">' + e.cropMonth + '/' + e.cropYear + (price ? '&ensp;·&ensp;' + price : '') + '</span>';
+            const displayHtml = sku.name + '&ensp;—&ensp;' + e.cropMonth + '/' + e.cropYear + (price ? '&ensp;·&ensp;' + price : '');
+            html += '<div class="sku-dd-option' + (isSel ? ' selected' : '') + '" data-value="' + e.id + '" onclick="pickSkuDdOption(\'' + ddId + '\', \'' + e.id + '\', \'' + displayHtml.replace(/'/g, '&#39;') + '\')">'
+                  + optLabel + optMeta + '</div>';
+            if (isSel) {
+              labelEl.innerHTML = displayHtml;
+              labelEl.classList.remove('placeholder');
+            }
+          });
+        });
+      });
+
+      if (!hasAny) html += '<div class="sku-dd-empty">No live SKUs with crop entries yet.</div>';
+      panel.innerHTML = html;
+      if (!cur) { labelEl.innerHTML = '— Select a crop —'; labelEl.classList.add('placeholder'); }
+    }
+
+    // close dropdowns on outside click
+    document.addEventListener('click', function(ev) {
+      if (!ev.target.closest('.sku-dd')) {
+        document.querySelectorAll('.sku-dd-panel.open').forEach(function(p) {
+          p.classList.remove('open');
+          p.closest('.sku-dd').querySelector('.sku-dd-trigger').classList.remove('open');
+        });
+      }
+    });
+    // ── end custom dropdown ────────────────────────────────────────────
+
+    function updateSkuSelect() {
+      const liveProducers = producers.filter(p => p.status === 'live');
+
+      // keep hidden selects in sync (for any legacy reads)
+      const placeholder = '<option value="">— Select a crop —</option>';
       let opts = placeholder;
       liveProducers.forEach(p => {
         const pSkus = skus.filter(s => s.producerId === p.id && (s.status === 'live' || s.status === 'active'))
@@ -2140,23 +2280,23 @@
         pSkus.forEach(sku => {
           const entries = cropEntries
             .filter(e => e.skuId === sku.id)
-            .sort((a, b) => (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth)); // newest first
-          if (entries.length === 0) return;
-          opts += `<optgroup label="${p.name}">`;
+            .sort((a, b) => (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth));
+          if (!entries.length) return;
           entries.forEach(e => {
-            const base = e.baseGreenPrice ? '  ₹' + parseFloat(e.baseGreenPrice).toFixed(0) + '/kg' : '';
-            opts += `<option value="${e.id}">${sku.name}  —  ${e.cropMonth}/${e.cropYear}${base}</option>`;
+            opts += '<option value="' + e.id + '">' + sku.name + ' — ' + e.cropMonth + '/' + e.cropYear + '</option>';
           });
-          opts += '</optgroup>';
         });
       });
-
       ['sku', 'sku250'].forEach(id => {
         const sel = document.getElementById(id);
         const cur = sel.value;
         sel.innerHTML = opts;
         if (cur) sel.value = cur;
       });
+
+      // build custom dropdown UI for both calculators
+      buildSkuDdPanel('skuDd',    liveProducers);
+      buildSkuDdPanel('skuDd250', liveProducers);
 
       // History filter — list all crop entries
       const logFilter = document.getElementById('logFilterSku');
