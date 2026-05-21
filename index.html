@@ -1639,10 +1639,25 @@
     // DATA STORAGE
     // ============================================
 
+    // Set to true only after initFromCloud() successfully loads Firebase data.
+    // saveData() refuses to write critical collections to Firebase until this flag is set,
+    // preventing an empty in-memory array from wiping real data during the startup window.
+    var cloudReady = false;
+
+    // Keys that hold user-generated records — never overwrite with empty during init
+    var PROTECTED_KEYS = ['logs', 'skus', 'cropEntries', 'producers'];
+
     function saveData(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
-      // Sync to Firebase (fire-and-forget; localStorage acts as offline cache)
-      db.ref(`hlc/${key}`).set(value).catch(e => console.warn('[Firebase] write failed:', e));
+      // Guard: never write an empty array/object for protected keys before cloud has loaded
+      if (!cloudReady && PROTECTED_KEYS.indexOf(key) !== -1) {
+        var isEmpty = Array.isArray(value) ? value.length === 0 : (!value || Object.keys(value).length === 0);
+        if (isEmpty) {
+          console.warn('[Firebase] saveData blocked — cloud not ready, refusing to overwrite "' + key + '" with empty value');
+          return;
+        }
+      }
+      db.ref('hlc/' + key).set(value).catch(function(e) { console.warn('[Firebase] write failed:', e); });
     }
     function loadData(key, def) { const s = localStorage.getItem(key); return s ? JSON.parse(s) : def; }
 
@@ -3440,9 +3455,12 @@
         if (data.logs)             logs             = Object.values(data.logs)
                                                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                                                        .slice(0, MAX_LOGS);
+        cloudReady = true;   // unlock Firebase writes for protected keys
         setSyncStatus('online');
       } catch (e) {
         console.warn('[Firebase] offline, using localStorage cache:', e);
+        // Still unlock writes — we're offline so localStorage is the source of truth
+        cloudReady = true;
         setSyncStatus('offline');
       }
     }
