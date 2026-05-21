@@ -1108,7 +1108,7 @@
             <table id="skuTable">
               <thead>
                 <tr>
-                  <th>S.No.</th><th>Producer</th><th>SKU Name</th><th>Crop</th><th>Base Green ₹/kg</th><th>Final Release ₹/kg</th><th>Status</th><th>Actions</th>
+                  <th>S.No.</th><th>Producer</th><th>SKU Name</th><th>Crop Entries</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody id="skuTableBody"></tbody>
@@ -1421,9 +1421,9 @@
     </div>
   </div>
 
-  <!-- SKU Modal -->
+  <!-- SKU Modal (name + producer + status only) -->
   <div class="modal-overlay" id="skuModal">
-    <div class="modal">
+    <div class="modal" style="max-width:440px;">
       <div class="modal-header">
         <h3 class="modal-title" id="skuModalTitle">Add Coffee SKU</h3>
         <button class="modal-close" id="closeSkuModal">×</button>
@@ -1438,34 +1438,6 @@
           <input type="text" id="skuName" placeholder="e.g., Washed, Natural, Honey">
         </div>
         <div class="form-group">
-          <label class="required">Crop Month &amp; Year</label>
-          <div style="display:flex;gap:0.75rem;">
-            <select id="skuCropMonth" style="flex:1;">
-              <option value="01">January</option><option value="02">February</option>
-              <option value="03">March</option><option value="04">April</option>
-              <option value="05">May</option><option value="06">June</option>
-              <option value="07">July</option><option value="08">August</option>
-              <option value="09">September</option><option value="10">October</option>
-              <option value="11">November</option><option value="12">December</option>
-            </select>
-            <input type="number" id="skuCropYear" placeholder="2025" min="2000" max="2099" style="flex:1;">
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="skuBaseGreenPrice" class="required">Base Green Price (₹/kg)</label>
-          <div class="input-wrapper">
-            <span class="currency-prefix">₹</span>
-            <input type="number" id="skuBaseGreenPrice" class="has-prefix" placeholder="0" min="0" step="1">
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="skuFinalReleasePrice">Final Release Price (₹/kg) <span style="color:var(--text-tertiary);font-weight:400;">— fill after calculations</span></label>
-          <div class="input-wrapper">
-            <span class="currency-prefix">₹</span>
-            <input type="number" id="skuFinalReleasePrice" class="has-prefix" placeholder="—" min="0" step="1">
-          </div>
-        </div>
-        <div class="form-group">
           <label for="skuStatus">Status</label>
           <select id="skuStatus">
             <option value="live">Live</option>
@@ -1474,10 +1446,58 @@
             <option value="archived">Archived</option>
           </select>
         </div>
+        <p style="font-size:0.8125rem;color:var(--text-tertiary);margin:0;padding-top:0.25rem;">
+          Crop year entries (base price, final price) are added separately under each SKU.
+        </p>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" id="cancelSkuBtn">Cancel</button>
         <button class="btn btn-primary" id="confirmSkuBtn">Save Coffee SKU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crop Entry Modal -->
+  <div class="modal-overlay" id="cropEntryModal">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="cropEntryModalTitle">Add Crop Entry</h3>
+        <button class="modal-close" id="closeCropEntryModal">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="cropEntrySkuLabel" style="font-size:0.875rem;font-weight:600;color:var(--accent-coffee);margin-bottom:1rem;"></p>
+        <div class="form-group">
+          <label class="required">Crop Month &amp; Year</label>
+          <div style="display:flex;gap:0.75rem;">
+            <select id="cropEntryMonth" style="flex:1;">
+              <option value="01">January</option><option value="02">February</option>
+              <option value="03">March</option><option value="04">April</option>
+              <option value="05">May</option><option value="06">June</option>
+              <option value="07">July</option><option value="08">August</option>
+              <option value="09">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+            <input type="number" id="cropEntryYear" placeholder="2025" min="2000" max="2099" style="flex:1;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cropEntryBasePrice" class="required">Base Green Price (₹/kg)</label>
+          <div class="input-wrapper">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="cropEntryBasePrice" class="has-prefix" placeholder="0" min="0" step="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cropEntryFinalPrice">Final Release Price (₹/kg) <span style="color:var(--text-tertiary);font-weight:400;">— fill after calculations</span></label>
+          <div class="input-wrapper">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="cropEntryFinalPrice" class="has-prefix" placeholder="—" min="0" step="1">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="cancelCropEntryBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmCropEntryBtn">Save Entry</button>
       </div>
     </div>
   </div>
@@ -1561,11 +1581,16 @@
     // { id, name, status: 'live'|'draft'|'paused'|'archived' }
 
     let skus = loadData('skus', []);
-    // { id, producerId, name, cropMonth, cropYear, baseGreenPrice, finalReleasePrice, status }
+    // { id, producerId, name, status }   ← no longer holds crop/price data
+
+    let cropEntries = loadData('cropEntries', []);
+    // { id, skuId, cropMonth, cropYear, baseGreenPrice, finalReleasePrice }
 
     let logs                = [];   // cleared — fresh start with new schema
     let editingSku          = null;
     let editingProducer     = null;
+    let editingCropEntry    = null;
+    let cropEntryTargetSku  = null;  // skuId being edited when crop modal opens
     let calculationMode     = 'forward';   // 1 kg tab
     let calculationMode250  = 'forward';   // 250g tab
 
@@ -1834,7 +1859,12 @@
       document.getElementById('displayHlcPremium'    + sfx).textContent = `₹${premiumAmount.toFixed(2)}`;
 
       const skuId   = document.getElementById('sku' + sfx).value;
-      const skuName = skuId ? (skus.find(s => s.id === skuId)?.name ?? 'No SKU Selected') : 'No SKU Selected';
+      const skuName = (() => {
+        if (!skuId) return 'No SKU Selected';
+        const entry = cropEntries.find(e => e.id === skuId);
+        const sku   = entry ? skus.find(s => s.id === entry.skuId) : null;
+        return sku ? sku.name + ' (' + (entry.cropMonth + '/' + entry.cropYear) + ')' : 'No SKU Selected';
+      })();
       document.getElementById('displaySkuName'      + sfx).textContent = skuName;
       document.getElementById('displaySkuNameFinal' + sfx).textContent = skuName;
 
@@ -1907,8 +1937,13 @@
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         bagSize:  size,
-        skuId,
-        skuName:  skus.find(s => s.id === skuId)?.name,
+        skuId,   // references a cropEntry.id
+        skuName:  (() => {
+          const entry = cropEntries.find(e => e.id === skuId);
+          const sku   = entry ? skus.find(s => s.id === entry.skuId) : null;
+          const prod  = sku   ? producers.find(p => p.id === sku.producerId) : null;
+          return [prod?.name, sku?.name, entry ? entry.cropMonth + '/' + entry.cropYear : null].filter(Boolean).join(' — ');
+        })(),
         calculationMode: mode,
         greenCoffeePrice: calc.greenCoffeePrice,
         greenCoffeeCost:  calc.greenCoffeeCost,
@@ -2014,63 +2049,101 @@
 
       const filtered = skus.filter(s => {
         const producer = producers.find(p => p.id === s.producerId);
-        return (
-          s.name.toLowerCase().includes(searchTerm) ||
-          (producer && producer.name.toLowerCase().includes(searchTerm)) ||
-          (s.cropYear && String(s.cropYear).includes(searchTerm))
-        );
+        return s.name.toLowerCase().includes(searchTerm) ||
+          (producer && producer.name.toLowerCase().includes(searchTerm));
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">☕</div><div class="empty-state-title">No Coffee SKUs Found</div><div class="empty-state-text">${searchTerm ? 'Try a different search' : 'Add your first Coffee SKU'}</div></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">☕</div><div class="empty-state-title">No Coffee SKUs Found</div><div class="empty-state-text">${searchTerm ? 'Try a different search' : 'Add your first Coffee SKU'}</div></div></td></tr>`;
         return;
       }
 
       tbody.innerHTML = filtered.map((sku, i) => {
-        const producer  = producers.find(p => p.id === sku.producerId);
-        const crop      = sku.cropMonth && sku.cropYear ? sku.cropMonth + '/' + sku.cropYear : '—';
-        const baseStr   = sku.baseGreenPrice   ? '₹' + parseFloat(sku.baseGreenPrice).toFixed(0)   : '—';
-        const finalStr  = sku.finalReleasePrice ? '₹' + parseFloat(sku.finalReleasePrice).toFixed(0) : '—';
-        return `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${producer ? producer.name : '<span style="color:var(--text-tertiary)">—</span>'}</td>
-            <td><strong>${sku.name}</strong></td>
-            <td>${crop}</td>
-            <td>${baseStr}</td>
-            <td>${finalStr}</td>
-            <td><span class="status-badge status-${sku.status}">${sku.status}</span></td>
-            <td>
-              <button class="action-btn" onclick="editSku('${sku.id}')">Edit</button>
-              <button class="action-btn action-btn-danger" onclick="deleteSku('${sku.id}')">Delete</button>
+        const producer   = producers.find(p => p.id === sku.producerId);
+        const entries    = cropEntries.filter(e => e.skuId === sku.id)
+                            .sort((a,b) => (a.cropYear+a.cropMonth).localeCompare(b.cropYear+b.cropMonth));
+        const entryCount = entries.length;
+        const canAdd     = sku.status === 'live' || sku.status === 'active';
+
+        // Build inline entries sub-table (hidden by default)
+        const entryRows = entries.map(e => {
+          const base  = e.baseGreenPrice    ? '₹' + parseFloat(e.baseGreenPrice).toFixed(0)    : '—';
+          const final = e.finalReleasePrice ? '₹' + parseFloat(e.finalReleasePrice).toFixed(0) : '<span style="color:var(--text-tertiary);font-style:italic;">not set</span>';
+          return `<tr style="background:var(--bg-secondary);">
+            <td style="padding:0.4rem 0.75rem;font-size:0.8rem;">${e.cropMonth}/${e.cropYear}</td>
+            <td style="padding:0.4rem 0.75rem;font-size:0.8rem;font-weight:600;">${base}</td>
+            <td style="padding:0.4rem 0.75rem;font-size:0.8rem;">${final}</td>
+            <td style="padding:0.4rem 0.75rem;">
+              <button class="action-btn" style="font-size:0.75rem;" onclick="editCropEntry('${e.id}')">Edit</button>
+              <button class="action-btn action-btn-danger" style="font-size:0.75rem;" onclick="deleteCropEntry('${e.id}')">Delete</button>
+            </td></tr>`;
+        }).join('');
+
+        const subTable = `
+          <tr id="skuEntries_${sku.id}" style="display:none;">
+            <td colspan="6" style="padding:0;background:var(--bg-tertiary);border-bottom:2px solid var(--border-medium);">
+              <div style="padding:0.75rem 1rem;">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Crop Entries — ${sku.name}</div>
+                ${entries.length ? `<table style="width:100%;border-collapse:collapse;margin-bottom:0.5rem;">
+                  <thead><tr style="border-bottom:1px solid var(--border-medium);">
+                    <th style="text-align:left;padding:0.3rem 0.75rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;">Crop</th>
+                    <th style="text-align:left;padding:0.3rem 0.75rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;">Base ₹/kg</th>
+                    <th style="text-align:left;padding:0.3rem 0.75rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;">Final ₹/kg</th>
+                    <th style="padding:0.3rem 0.75rem;"></th>
+                  </tr></thead><tbody>${entryRows}</tbody>
+                </table>` : '<p style="font-size:0.8125rem;color:var(--text-tertiary);margin:0 0 0.5rem;">No crop entries yet.</p>'}
+                ${canAdd ? `<button class="btn btn-outline" style="font-size:0.8rem;padding:0.35rem 0.875rem;" onclick="openCropEntryModal('${sku.id}')">+ Add Crop Entry</button>` : '<span style="font-size:0.8rem;color:var(--text-tertiary);">Set SKU to Live to add entries.</span>'}
+              </div>
             </td>
           </tr>`;
+
+        const mainRow = `<tr>
+          <td>${i + 1}</td>
+          <td>${producer ? producer.name : '<span style="color:var(--text-tertiary)">—</span>'}</td>
+          <td><strong>${sku.name}</strong></td>
+          <td>
+            <button class="action-btn" style="font-size:0.8125rem;font-weight:600;color:var(--accent-coffee);" onclick="toggleSkuEntries('${sku.id}')">
+              ${entryCount} entr${entryCount === 1 ? 'y' : 'ies'} ▾
+            </button>
+          </td>
+          <td><span class="status-badge status-${sku.status}">${sku.status}</span></td>
+          <td>
+            <button class="action-btn" onclick="editSku('${sku.id}')">Edit</button>
+            <button class="action-btn action-btn-danger" onclick="deleteSku('${sku.id}')">Delete</button>
+          </td>
+        </tr>`;
+
+        return mainRow + subTable;
       }).join('');
     }
 
+    window.toggleSkuEntries = function(skuId) {
+      const row = document.getElementById('skuEntries_' + skuId);
+      if (!row) return;
+      row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+    };
+
     function updateSkuSelect() {
-      // Calculator dropdowns: optgroup per live producer, sorted by SKU name then crop date
+      // Calculator dropdowns: optgroup = "Producer — SKU Name", options = crop entries
       const liveProducers = producers.filter(p => p.status === 'live');
-      const placeholder   = '<option value="">— Select a Coffee SKU —</option>';
+      const placeholder   = '<option value="">— Select a crop —</option>';
 
       let opts = placeholder;
       liveProducers.forEach(p => {
-        const pSkus = skus
-          .filter(s => s.producerId === p.id && (s.status === 'live' || s.status === 'active'))
-          .sort((a, b) => {
-            const nameC = a.name.localeCompare(b.name);
-            if (nameC !== 0) return nameC;
-            const dateA = a.cropYear + a.cropMonth;
-            const dateB = b.cropYear + b.cropMonth;
-            return dateA.localeCompare(dateB);
+        const pSkus = skus.filter(s => s.producerId === p.id && (s.status === 'live' || s.status === 'active'))
+                          .sort((a, b) => a.name.localeCompare(b.name));
+        pSkus.forEach(sku => {
+          const entries = cropEntries
+            .filter(e => e.skuId === sku.id)
+            .sort((a, b) => (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth)); // newest first
+          if (entries.length === 0) return;
+          opts += `<optgroup label="${p.name} — ${sku.name}">`;
+          entries.forEach(e => {
+            const base = e.baseGreenPrice ? ' · ₹' + parseFloat(e.baseGreenPrice).toFixed(0) + '/kg' : '';
+            opts += `<option value="${e.id}">${e.cropMonth}/${e.cropYear}${base}</option>`;
           });
-        if (pSkus.length === 0) return;
-        opts += `<optgroup label="${p.name}">`;
-        pSkus.forEach(s => {
-          const crop = s.cropMonth && s.cropYear ? ' (' + s.cropMonth + '/' + s.cropYear + ')' : '';
-          opts += `<option value="${s.id}">${s.name}${crop}</option>`;
+          opts += '</optgroup>';
         });
-        opts += '</optgroup>';
       });
 
       ['sku', 'sku250'].forEach(id => {
@@ -2080,17 +2153,16 @@
         if (cur) sel.value = cur;
       });
 
-      // History filter
+      // History filter — list all crop entries
       const logFilter = document.getElementById('logFilterSku');
       logFilter.innerHTML = '<option value="">All Coffee SKUs</option>' +
-        skus.map(s => {
-          const p    = producers.find(p => p.id === s.producerId);
-          const crop = s.cropMonth && s.cropYear ? ' (' + s.cropMonth + '/' + s.cropYear + ')' : '';
-          const label = (p ? p.name + ' — ' : '') + s.name + crop;
-          return `<option value="${s.id}">${label}</option>`;
+        cropEntries.map(e => {
+          const sku  = skus.find(s => s.id === e.skuId);
+          const prod = sku ? producers.find(p => p.id === sku.producerId) : null;
+          const label = (prod ? prod.name + ' — ' : '') + (sku ? sku.name + ' ' : '') + e.cropMonth + '/' + e.cropYear;
+          return `<option value="${e.id}">${label}</option>`;
         }).join('');
 
-      // Price Tracker producer dropdown
       populatePtProducerFilter();
     }
 
@@ -2105,13 +2177,9 @@
       editingSku = sku;
       populateSkuProducerDropdown();
       document.getElementById('skuModalTitle').textContent = sku ? 'Edit Coffee SKU' : 'Add Coffee SKU';
-      document.getElementById('skuProducer').value          = sku?.producerId        || '';
-      document.getElementById('skuName').value              = sku?.name              || '';
-      document.getElementById('skuCropMonth').value         = sku?.cropMonth         || new Date().toISOString().slice(5,7);
-      document.getElementById('skuCropYear').value          = sku?.cropYear          || new Date().getFullYear();
-      document.getElementById('skuBaseGreenPrice').value    = sku?.baseGreenPrice    || '';
-      document.getElementById('skuFinalReleasePrice').value = sku?.finalReleasePrice || '';
-      document.getElementById('skuStatus').value            = sku?.status            || 'live';
+      document.getElementById('skuProducer').value = sku?.producerId || '';
+      document.getElementById('skuName').value     = sku?.name       || '';
+      document.getElementById('skuStatus').value   = sku?.status     || 'live';
       document.getElementById('skuModal').classList.add('active');
     }
 
@@ -2123,28 +2191,14 @@
     function saveSku() {
       const producerId = document.getElementById('skuProducer').value;
       if (!producerId) { showToast('Please select a producer', 'warning'); return; }
-
       const name = document.getElementById('skuName').value.trim();
       if (!name) { showToast('Please enter a SKU name', 'warning'); return; }
 
-      const cropMonth = document.getElementById('skuCropMonth').value;
-      const cropYear  = document.getElementById('skuCropYear').value.trim();
-      if (!cropYear || isNaN(cropYear)) { showToast('Please enter a valid crop year', 'warning'); return; }
-
-      const baseGreenPrice = parseFloat(document.getElementById('skuBaseGreenPrice').value);
-      if (!baseGreenPrice || baseGreenPrice <= 0) { showToast('Base green price is required', 'warning'); return; }
-
-      const finalReleasePrice = parseFloat(document.getElementById('skuFinalReleasePrice').value) || null;
-
       const skuData = {
-        id:                editingSku?.id || Date.now().toString(),
+        id:         editingSku?.id || Date.now().toString(),
         producerId,
         name,
-        cropMonth,
-        cropYear,
-        baseGreenPrice,
-        finalReleasePrice,
-        status:            document.getElementById('skuStatus').value
+        status:     document.getElementById('skuStatus').value
       };
 
       if (editingSku) {
@@ -2166,12 +2220,100 @@
     };
 
     window.deleteSku = async function(id) {
-      if (await showConfirm('Delete this Coffee SKU?', 'Delete SKU')) {
+      const hasEntries = cropEntries.some(e => e.skuId === id);
+      const msg = hasEntries
+        ? 'This SKU has crop entries. Deleting it will also remove all its entries. Continue?'
+        : 'Delete this Coffee SKU?';
+      if (await showConfirm(msg, 'Delete SKU')) {
+        cropEntries = cropEntries.filter(e => e.skuId !== id);
         skus = skus.filter(s => s.id !== id);
         saveData('skus', skus);
+        saveData('cropEntries', cropEntries);
         updateSkuSelect();
         renderSkuTable();
         showToast('Coffee SKU deleted');
+      }
+    };
+
+    // ── Crop Entries ──
+
+    window.openCropEntryModal = function(skuId, entryId = null) {
+      const sku   = skus.find(s => s.id === skuId);
+      const entry = entryId ? cropEntries.find(e => e.id === entryId) : null;
+      cropEntryTargetSku = skuId;
+      editingCropEntry   = entry;
+
+      const prod = sku ? producers.find(p => p.id === sku.producerId) : null;
+      document.getElementById('cropEntrySkuLabel').textContent =
+        (prod ? prod.name + ' — ' : '') + (sku ? sku.name : '');
+      document.getElementById('cropEntryModalTitle').textContent = entry ? 'Edit Crop Entry' : 'Add Crop Entry';
+      document.getElementById('cropEntryMonth').value      = entry?.cropMonth    || new Date().toISOString().slice(5,7);
+      document.getElementById('cropEntryYear').value       = entry?.cropYear     || new Date().getFullYear();
+      document.getElementById('cropEntryBasePrice').value  = entry?.baseGreenPrice    || '';
+      document.getElementById('cropEntryFinalPrice').value = entry?.finalReleasePrice || '';
+      document.getElementById('cropEntryModal').classList.add('active');
+    };
+
+    window.editCropEntry = function(entryId) {
+      const entry = cropEntries.find(e => e.id === entryId);
+      if (entry) openCropEntryModal(entry.skuId, entryId);
+    };
+
+    function closeCropEntryModal() {
+      document.getElementById('cropEntryModal').classList.remove('active');
+      editingCropEntry   = null;
+      cropEntryTargetSku = null;
+    }
+
+    function saveCropEntry() {
+      const month = document.getElementById('cropEntryMonth').value;
+      const year  = document.getElementById('cropEntryYear').value.trim();
+      if (!year || isNaN(year)) { showToast('Please enter a valid crop year', 'warning'); return; }
+
+      const base = parseFloat(document.getElementById('cropEntryBasePrice').value);
+      if (!base || base <= 0) { showToast('Base green price is required', 'warning'); return; }
+
+      const final = parseFloat(document.getElementById('cropEntryFinalPrice').value) || null;
+
+      const data = {
+        id:                editingCropEntry?.id || Date.now().toString(),
+        skuId:             cropEntryTargetSku,
+        cropMonth:         month,
+        cropYear:          year,
+        baseGreenPrice:    base,
+        finalReleasePrice: final
+      };
+
+      if (editingCropEntry) {
+        cropEntries[cropEntries.findIndex(e => e.id === editingCropEntry.id)] = data;
+      } else {
+        cropEntries.push(data);
+      }
+
+      saveData('cropEntries', cropEntries);
+      closeCropEntryModal();
+      updateSkuSelect();
+      renderSkuTable();
+      // Re-open the expanded entries row so user sees the new entry
+      setTimeout(() => {
+        const row = document.getElementById('skuEntries_' + cropEntryTargetSku);
+        if (row) row.style.display = 'table-row';
+      }, 50);
+      showToast('Crop entry saved');
+    }
+
+    window.deleteCropEntry = async function(entryId) {
+      if (await showConfirm('Delete this crop entry?', 'Delete Entry')) {
+        const skuId = cropEntries.find(e => e.id === entryId)?.skuId;
+        cropEntries = cropEntries.filter(e => e.id !== entryId);
+        saveData('cropEntries', cropEntries);
+        updateSkuSelect();
+        renderSkuTable();
+        if (skuId) setTimeout(() => {
+          const row = document.getElementById('skuEntries_' + skuId);
+          if (row) row.style.display = 'table-row';
+        }, 50);
+        showToast('Crop entry deleted');
       }
     };
 
@@ -2552,7 +2694,9 @@
       const cur = sel.value;
       // Unique SKU names under selected producer
       const names = [...new Set(
-        skus.filter(s => !producerId || s.producerId === producerId).map(s => s.name)
+        skus.filter(s => !producerId || s.producerId === producerId)
+            .filter(s => cropEntries.some(e => e.skuId === s.id))
+            .map(s => s.name)
       )].sort();
       sel.innerHTML = '<option value="">All SKUs</option>' +
         names.map(n => '<option value="' + n + '">' + n + '</option>').join('');
@@ -2577,28 +2721,30 @@
 
       if (!producerId) { showEmpty('Select a producer to see their price trends'); return; }
 
-      // All SKUs for this producer (optionally filtered by name)
-      let filteredSkus = skus.filter(s =>
+      // Get SKUs for this producer (optionally filtered by name)
+      const producerSkus = skus.filter(s =>
         s.producerId === producerId &&
         (!skuNameFilter || s.name === skuNameFilter)
-      ).sort((a, b) => {
-        const da = (a.cropYear || '0') + (a.cropMonth || '00');
-        const db = (b.cropYear || '0') + (b.cropMonth || '00');
-        return da.localeCompare(db);
-      });
+      );
 
-      if (filteredSkus.length === 0) { showEmpty('No SKUs found for this producer / filter combination.'); return; }
+      // Gather all crop entries for those SKUs, sorted chronologically
+      let points = [];
+      producerSkus.forEach(sku => {
+        cropEntries
+          .filter(e => e.skuId === sku.id)
+          .forEach(e => points.push({ ...e, skuName: sku.name }));
+      });
+      points.sort((a, b) => (a.cropYear + a.cropMonth).localeCompare(b.cropYear + b.cropMonth));
+
+      if (points.length === 0) { showEmpty('No crop entries found. Add entries under the SKUs in Coffee SKUs tab.'); return; }
 
       empty.style.display  = 'none';
       canvas.style.display = 'block';
       stats.style.display  = 'grid';
 
-      // X labels: "SKU Name (MM/YYYY)"
-      const labels = filteredSkus.map(s =>
-        s.name + (s.cropMonth && s.cropYear ? ' (' + s.cropMonth + '/' + s.cropYear + ')' : '')
-      );
-      const basePrices  = filteredSkus.map(s => s.baseGreenPrice    ? parseFloat(s.baseGreenPrice)    : null);
-      const finalPrices = filteredSkus.map(s => s.finalReleasePrice ? parseFloat(s.finalReleasePrice) : null);
+      const labels      = points.map(p => p.skuName + ' (' + p.cropMonth + '/' + p.cropYear + ')');
+      const basePrices  = points.map(p => p.baseGreenPrice    ? parseFloat(p.baseGreenPrice)    : null);
+      const finalPrices = points.map(p => p.finalReleasePrice ? parseFloat(p.finalReleasePrice) : null);
 
       if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
 
@@ -2673,7 +2819,7 @@
       document.getElementById('ptStatFirst').textContent  = validBase.length  ? '₹' + validBase[0].toFixed(0) + '/kg'              : '—';
       document.getElementById('ptStatLatest').textContent = validBase.length  ? '₹' + validBase[validBase.length-1].toFixed(0) + '/kg' : '—';
       document.getElementById('ptStatFinal').textContent  = validFinal.length ? '₹' + validFinal[validFinal.length-1].toFixed(0) + '/kg' : 'Not set';
-      document.getElementById('ptStatCount').textContent  = filteredSkus.length;
+      document.getElementById('ptStatCount').textContent  = points.length;
     }
 
     // ============================================
@@ -2855,18 +3001,24 @@
     document.getElementById('cancelSkuBtn').addEventListener('click',  closeSkuModal);
     document.getElementById('confirmSkuBtn').addEventListener('click', saveSku);
     document.getElementById('skuSearch').addEventListener('input',     renderSkuTable);
-
     document.getElementById('skuModal').addEventListener('click', e => {
       if (e.target.id === 'skuModal') closeSkuModal();
     });
 
+    document.getElementById('closeCropEntryModal').addEventListener('click', closeCropEntryModal);
+    document.getElementById('cancelCropEntryBtn').addEventListener('click',  closeCropEntryModal);
+    document.getElementById('confirmCropEntryBtn').addEventListener('click', saveCropEntry);
+    document.getElementById('cropEntryModal').addEventListener('click', e => {
+      if (e.target.id === 'cropEntryModal') closeCropEntryModal();
+    });
+
     // Auto-fill green coffee price when a SKU is chosen in the calculator
     function onSkuSelected(size) {
-      const sfx  = size === '250g' ? '250' : '';
-      const skuId = document.getElementById('sku' + sfx).value;
-      const sku   = skus.find(s => s.id === skuId);
-      if (sku && sku.baseGreenPrice) {
-        document.getElementById('greenCoffeePrice' + sfx).value = sku.baseGreenPrice;
+      const sfx     = size === '250g' ? '250' : '';
+      const entryId = document.getElementById('sku' + sfx).value;
+      const entry   = cropEntries.find(e => e.id === entryId);
+      if (entry && entry.baseGreenPrice) {
+        document.getElementById('greenCoffeePrice' + sfx).value = entry.baseGreenPrice;
         calculate(size);
       }
     }
@@ -2943,6 +3095,7 @@
         if (data.pkgBreakdown250g) pkgBreakdown250g = data.pkgBreakdown250g;
         if (data.producers)        producers        = Object.values(data.producers);
         if (data.skus)             skus             = Object.values(data.skus);
+        if (data.cropEntries)      cropEntries      = Object.values(data.cropEntries);
         if (data.logs)             logs             = Object.values(data.logs)
                                                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                                                        .slice(0, MAX_LOGS);
@@ -2961,12 +3114,16 @@
         renderProducerTable();
         updateSkuSelect();
       });
-      // SKUs — anyone adding/editing a SKU propagates instantly to all users
+      // SKUs + crop entries
       db.ref('hlc/skus').on('value', snap => {
         const data = snap.val();
         skus = data ? Object.values(data) : [];
-        updateSkuSelect();
-        renderSkuTable();
+        updateSkuSelect(); renderSkuTable();
+      });
+      db.ref('hlc/cropEntries').on('value', snap => {
+        const data = snap.val();
+        cropEntries = data ? Object.values(data) : [];
+        updateSkuSelect(); renderSkuTable();
       });
       // Settings — if defaults change, all open calculators recalculate
       db.ref('hlc/settings').on('value', snap => {
