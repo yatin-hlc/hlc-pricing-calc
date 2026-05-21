@@ -820,7 +820,7 @@
               <!-- Bulk Price Tiers -->
               <div style="margin-top:1rem;">
                 <button type="button" id="bulkTiersToggle" onclick="toggleBulkTiers('1kg')"
-                  style="width:100%;padding:0.5rem;border:1px dashed var(--border-medium);border-radius:8px;background:transparent;font-family:inherit;font-size:0.8125rem;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.2s;">
+                  style="width:100%;padding:0.625rem;border:1.5px solid var(--accent-coffee);border-radius:8px;background:var(--bg-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;color:var(--accent-coffee);cursor:pointer;transition:all 0.2s;box-shadow:4px 4px 0px var(--accent-coffee);letter-spacing:0.01em;">
                   📦 Show Bulk Price Tiers
                 </button>
                 <div id="bulkTiersPanel" style="display:none;margin-top:0.75rem;">
@@ -1036,7 +1036,7 @@
               <!-- Bulk Price Tiers 250g -->
               <div style="margin-top:1rem;">
                 <button type="button" id="bulkTiersToggle250" onclick="toggleBulkTiers('250g')"
-                  style="width:100%;padding:0.5rem;border:1px dashed var(--border-medium);border-radius:8px;background:transparent;font-family:inherit;font-size:0.8125rem;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.2s;">
+                  style="width:100%;padding:0.625rem;border:1.5px solid var(--accent-coffee);border-radius:8px;background:var(--bg-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;color:var(--accent-coffee);cursor:pointer;transition:all 0.2s;box-shadow:4px 4px 0px var(--accent-coffee);letter-spacing:0.01em;">
                   📦 Show Bulk Price Tiers
                 </button>
                 <div id="bulkTiersPanel250" style="display:none;margin-top:0.75rem;">
@@ -2312,7 +2312,7 @@
             <div id="logBulkWrap_${log.id}" style="margin-top:0.75rem;">
               <button onclick="toggleLogBulkTiers('${log.id}')"
                 id="logBulkBtn_${log.id}"
-                style="background:transparent;border:1px dashed var(--border-medium);border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;color:var(--text-tertiary);font-size:0.75rem;font-weight:500;font-family:inherit;transition:all 0.2s;">
+                style="background:var(--bg-secondary);border:1.5px solid var(--accent-coffee);border-radius:6px;padding:0.4rem 1rem;cursor:pointer;color:var(--accent-coffee);font-size:0.8rem;font-weight:600;font-family:inherit;transition:all 0.2s;box-shadow:3px 3px 0px var(--accent-coffee);">
                 📦 Show Bulk Tiers
               </button>
               <div id="logBulkPanel_${log.id}" style="display:none;margin-top:0.5rem;background:var(--bg-tertiary);border-radius:8px;padding:0.75rem;"></div>
@@ -2443,10 +2443,10 @@
       const on     = size === '250g' ? bulkTiersOn250 : bulkTiersOn;
       const btn    = document.getElementById('bulkTiersToggle' + sfx);
       const panel  = document.getElementById('bulkTiersPanel' + sfx);
-      btn.textContent  = on ? '📦 Hide Bulk Price Tiers' : '📦 Show Bulk Price Tiers';
-      btn.style.borderStyle     = on ? 'solid'   : 'dashed';
-      btn.style.borderColor     = on ? 'var(--accent-coffee)' : 'var(--border-medium)';
-      btn.style.color           = on ? 'var(--accent-coffee)' : 'var(--text-secondary)';
+      btn.textContent       = on ? '📦 Hide Bulk Price Tiers' : '📦 Show Bulk Price Tiers';
+      btn.style.background  = on ? 'var(--accent-coffee)'  : 'var(--bg-secondary)';
+      btn.style.color       = on ? '#fff'                   : 'var(--accent-coffee)';
+      btn.style.boxShadow   = on ? 'none'                   : '4px 4px 0px var(--accent-coffee)';
       panel.style.display = on ? 'block' : 'none';
       if (on) renderBulkTiers(size);
     }
@@ -2497,10 +2497,10 @@
       if (!btn || !panel) return;
       const open = panel.style.display === 'none';
       panel.style.display = open ? 'block' : 'none';
-      btn.textContent     = open ? '📦 Hide Bulk Tiers' : '📦 Show Bulk Tiers';
-      btn.style.borderStyle = open ? 'solid'   : 'dashed';
-      btn.style.color       = open ? 'var(--accent-coffee)' : 'var(--text-tertiary)';
-      btn.style.borderColor = open ? 'var(--accent-coffee)' : 'var(--border-medium)';
+      btn.textContent      = open ? '📦 Hide Bulk Tiers' : '📦 Show Bulk Tiers';
+      btn.style.background = open ? 'var(--accent-coffee)' : 'var(--bg-secondary)';
+      btn.style.color      = open ? '#fff'                  : 'var(--accent-coffee)';
+      btn.style.boxShadow  = open ? 'none'                  : '3px 3px 0px var(--accent-coffee)';
       if (!open) return;
 
       const log       = logs.find(l => l.id === logId);
