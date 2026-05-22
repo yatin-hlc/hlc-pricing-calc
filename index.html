@@ -3033,8 +3033,8 @@
             '<thead>' +
               '<tr style="background:var(--bg-tertiary);">' +
                 '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:60px;">S.No.</th>' +
+                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:140px;">Buying Entries</th>' +
                 '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Varietal Name</th>' +
-                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Price Entries</th>' +
                 '<th style="padding:0.6rem 1rem;width:120px;"></th>' +
               '</tr>' +
             '</thead>' +
@@ -3118,9 +3118,8 @@
 
             const mainRow =
               '<tr style="border-bottom:1px solid var(--border-light);">' +
-                '<td style="padding:0.75rem 1rem;color:var(--text-tertiary);font-size:0.85rem;">' + (idx + 1) + '</td>' +
-                '<td style="padding:0.75rem 1rem;"><strong>' + gv.name + '</strong></td>' +
-                '<td style="padding:0.75rem 1rem;">' +
+                '<td style="padding:0.75rem 1rem;color:var(--text-tertiary);font-size:0.85rem;width:60px;">' + (idx + 1) + '</td>' +
+                '<td style="padding:0.75rem 1rem;width:140px;">' +
                   '<button style="background:' + (priceCount > 0 ? 'var(--accent-green)' : 'transparent') + ';' +
                     'color:' + (priceCount > 0 ? '#fff' : 'var(--text-tertiary)') + ';' +
                     'border:1.5px solid ' + (priceCount > 0 ? 'var(--accent-green)' : 'var(--border-medium)') + ';' +
@@ -3130,6 +3129,7 @@
                     priceCount + ' entr' + (priceCount === 1 ? 'y' : 'ies') + ' ▾' +
                   '</button>' +
                 '</td>' +
+                '<td style="padding:0.75rem 1rem;"><strong>' + gv.name + '</strong></td>' +
                 '<td style="padding:0.75rem 1rem;text-align:right;">' +
                   '<button class="action-btn" onclick="editGv(\'' + gv.id + '\')">Edit</button>' +
                   '<button class="action-btn action-btn-danger" onclick="deleteGv(\'' + gv.id + '\')">Delete</button>' +
