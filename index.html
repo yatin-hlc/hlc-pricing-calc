@@ -3027,13 +3027,15 @@
         } else {
           // Varietals table for this producer
           html +=
-            '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);' +
+            '<div style="overflow-x:auto;">' +
+            '<table style="width:100%;min-width:480px;border-collapse:collapse;background:var(--bg-secondary);' +
               'border:1px solid var(--border-light);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">' +
             '<thead>' +
               '<tr style="background:var(--bg-tertiary);">' +
-                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:56px;">S.No.</th>' +
+                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:60px;">S.No.</th>' +
                 '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Varietal Name</th>' +
-                '<th style="padding:0.6rem 1rem;width:130px;"></th>' +
+                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Price Entries</th>' +
+                '<th style="padding:0.6rem 1rem;width:120px;"></th>' +
               '</tr>' +
             '</thead>' +
             '<tbody>';
@@ -3096,7 +3098,7 @@
 
             const subRow =
               '<tr id="gvPrices_' + gv.id + '" style="display:none;">' +
-                '<td colspan="3" style="padding:0;border-left:3px solid var(--accent-green);border-bottom:2px solid var(--accent-green);">' +
+                '<td colspan="4" style="padding:0;border-left:3px solid var(--accent-green);border-bottom:2px solid var(--accent-green);">' +
                   '<div style="background:var(--bg-primary);padding:1rem 1.25rem;">' +
                     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">' +
                       '<span style="font-size:0.9rem;font-weight:700;color:var(--accent-green);">' + gv.name + ' — buying history</span>' +
@@ -3116,21 +3118,19 @@
 
             const mainRow =
               '<tr style="border-bottom:1px solid var(--border-light);">' +
-                '<td style="padding:0.75rem 1rem;color:var(--text-tertiary);font-size:0.85rem;width:56px;">' + (idx + 1) + '</td>' +
+                '<td style="padding:0.75rem 1rem;color:var(--text-tertiary);font-size:0.85rem;">' + (idx + 1) + '</td>' +
+                '<td style="padding:0.75rem 1rem;"><strong>' + gv.name + '</strong></td>' +
                 '<td style="padding:0.75rem 1rem;">' +
-                  '<div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">' +
-                    '<strong>' + gv.name + '</strong>' +
-                    '<button style="background:' + (priceCount > 0 ? 'var(--accent-green)' : 'transparent') + ';' +
-                      'color:' + (priceCount > 0 ? '#fff' : 'var(--text-tertiary)') + ';' +
-                      'border:1.5px solid ' + (priceCount > 0 ? 'var(--accent-green)' : 'var(--border-medium)') + ';' +
-                      'border-radius:20px;padding:0.2rem 0.65rem;font-size:0.75rem;font-weight:600;' +
-                      'font-family:inherit;cursor:pointer;transition:all 0.2s;white-space:nowrap;" ' +
-                      'onclick="toggleGvPrices(\'' + gv.id + '\')">' +
-                      priceCount + ' entr' + (priceCount === 1 ? 'y' : 'ies') + ' ▾' +
-                    '</button>' +
-                  '</div>' +
+                  '<button style="background:' + (priceCount > 0 ? 'var(--accent-green)' : 'transparent') + ';' +
+                    'color:' + (priceCount > 0 ? '#fff' : 'var(--text-tertiary)') + ';' +
+                    'border:1.5px solid ' + (priceCount > 0 ? 'var(--accent-green)' : 'var(--border-medium)') + ';' +
+                    'border-radius:20px;padding:0.25rem 0.75rem;font-size:0.78rem;font-weight:600;' +
+                    'font-family:inherit;cursor:pointer;transition:all 0.2s;" ' +
+                    'onclick="toggleGvPrices(\'' + gv.id + '\')">' +
+                    priceCount + ' entr' + (priceCount === 1 ? 'y' : 'ies') + ' ▾' +
+                  '</button>' +
                 '</td>' +
-                '<td style="padding:0.75rem 1rem;text-align:right;white-space:nowrap;">' +
+                '<td style="padding:0.75rem 1rem;text-align:right;">' +
                   '<button class="action-btn" onclick="editGv(\'' + gv.id + '\')">Edit</button>' +
                   '<button class="action-btn action-btn-danger" onclick="deleteGv(\'' + gv.id + '\')">Delete</button>' +
                 '</td>' +
@@ -3139,7 +3139,7 @@
             html += mainRow + subRow;
           });
 
-          html += '</tbody></table>';
+          html += '</tbody></table></div>';
         }
 
         html += '</div>'; // end producer section
