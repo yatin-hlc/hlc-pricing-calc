@@ -1284,6 +1284,21 @@
         </div>
 
         <div class="card" style="position:relative;min-height:320px;">
+          <!-- Toggle chips — shown when chart has data -->
+          <div id="ptToggles" style="display:none;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+            <button id="ptToggleVarietals" onclick="ptToggleDataset('varietal')"
+              style="background:#2D5940;color:#fff;border:1.5px solid #2D5940;border-radius:20px;padding:0.3rem 0.9rem;font-size:0.8rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;">
+              🌿 Varietal Prices
+            </button>
+            <button id="ptToggleBase" onclick="ptToggleDataset('base')"
+              style="background:#4A7FC1;color:#fff;border:1.5px solid #4A7FC1;border-radius:20px;padding:0.3rem 0.9rem;font-size:0.8rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;">
+              📊 SKU Base Price
+            </button>
+            <button id="ptToggleFinal" onclick="ptToggleDataset('final')"
+              style="background:#C07030;color:#fff;border:1.5px solid #C07030;border-radius:20px;padding:0.3rem 0.9rem;font-size:0.8rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;">
+              🏷️ Final Release Price
+            </button>
+          </div>
           <div id="ptEmptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:0.5rem;color:var(--text-tertiary);">
             <span style="font-size:2rem;">📈</span>
             <span style="font-size:0.9rem;">Select a producer to see their price trends</span>
@@ -3529,84 +3544,162 @@
     ];
 
     function renderPriceChart() {
-      const producerId = document.getElementById('ptProducerFilter').value;
-      const skuId      = document.getElementById('ptSkuNameFilter').value;
-      const canvas     = document.getElementById('ptChart');
-      const empty      = document.getElementById('ptEmptyState');
-      const stats      = document.getElementById('ptStats');
+      var producerId = document.getElementById('ptProducerFilter').value;
+      var skuId      = document.getElementById('ptSkuNameFilter').value;
+      var canvas     = document.getElementById('ptChart');
+      var empty      = document.getElementById('ptEmptyState');
+      var stats      = document.getElementById('ptStats');
+      var togglesEl  = document.getElementById('ptToggles');
 
       function showEmpty(msg) {
-        canvas.style.display = 'none';
-        empty.style.display  = 'flex';
+        canvas.style.display   = 'none';
+        empty.style.display    = 'flex';
         empty.querySelector('span:last-child').textContent = msg;
-        stats.style.display  = 'none';
+        stats.style.display    = 'none';
+        togglesEl.style.display = 'none';
         if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
       }
 
       if (!producerId) { showEmpty('Select a producer to see their price trends'); return; }
 
       // ── Green Varietal datasets ─────────────────────────────────────────
-      const producerVarietals = greenVarietals.filter(function(gv) {
+      var producerVarietals = greenVarietals.filter(function(gv) {
         return gv.producerId === producerId;
       });
-
-      // All price entries for this producer's varietals
-      const allPriceEntries = greenVarietalPrices.filter(function(p) {
+      var allPriceEntries = greenVarietalPrices.filter(function(p) {
         return producerVarietals.some(function(gv) { return gv.id === p.varietalId; });
       });
 
-      if (allPriceEntries.length === 0) {
-        showEmpty('No price entries found. Add price entries in the Green Varietals tab.');
+      // ── SKU crop entries (base + final) ────────────────────────────────
+      var selectedSku     = skuId ? skus.find(function(s) { return s.id === skuId; }) : null;
+      var skuCropEntries  = skuId
+        ? cropEntries.filter(function(e) { return e.skuId === skuId; })
+        : [];
+
+      // Need at least varietal entries OR SKU crop entries to draw anything
+      if (allPriceEntries.length === 0 && skuCropEntries.length === 0) {
+        showEmpty('No price entries found. Add entries in Green Varietals tab or crop entries in Coffee SKUs tab.');
         return;
       }
 
-      // Build a unified sorted date axis (YYYYMM keys)
-      var dateKeys = [];
-      var seen = {};
+      // ── Unified date axis (YYYYMM) ────────────────────────────────────
+      var seenDates = {};
       allPriceEntries.forEach(function(p) {
         var k = String(p.year).padStart(4,'0') + String(p.month).padStart(2,'0');
-        if (!seen[k]) { seen[k] = true; dateKeys.push(k); }
+        seenDates[k] = true;
       });
-      dateKeys.sort(); // chronological ascending
+      skuCropEntries.forEach(function(e) {
+        var k = String(e.cropYear).padStart(4,'0') + String(e.cropMonth).padStart(2,'0');
+        seenDates[k] = true;
+      });
+      var dateKeys = Object.keys(seenDates).sort();
+      var labels   = dateKeys.map(function(k) { return k.slice(4) + '/' + k.slice(0,4); });
 
-      // Human-readable labels: "MM/YYYY"
-      var labels = dateKeys.map(function(k) { return k.slice(4) + '/' + k.slice(0,4); });
+      // ── Build datasets ─────────────────────────────────────────────────
+      var datasets = [];
 
-      // One dataset per varietal
-      var datasets = producerVarietals.map(function(gv, idx) {
-        var color = PT_COLORS[idx % PT_COLORS.length];
+      // 1. One line per varietal (green palette, ptType = 'varietal')
+      producerVarietals.forEach(function(gv, idx) {
+        var color   = PT_COLORS[idx % PT_COLORS.length];
         var entries = greenVarietalPrices.filter(function(p) { return p.varietalId === gv.id; });
+        var hasAny  = entries.length > 0;
+        if (!hasAny) return; // skip varietals with no price data
         var data = dateKeys.map(function(dk) {
-          var entry = entries.find(function(p) {
+          var e = entries.find(function(p) {
             return String(p.year).padStart(4,'0') + String(p.month).padStart(2,'0') === dk;
           });
-          return entry ? parseFloat(entry.boughtPrice) : null;
+          return e ? parseFloat(e.boughtPrice) : null;
         });
-        return {
-          label: gv.name,
+        datasets.push({
+          label: gv.name + ' (Bought)',
+          ptType: 'varietal',
           data: data,
           borderColor: color.border,
           backgroundColor: color.bg,
           pointBackgroundColor: color.border,
-          pointRadius: 6,
-          pointHoverRadius: 9,
+          pointRadius: 5,
+          pointHoverRadius: 8,
           tension: 0.3,
           fill: false,
           spanGaps: true
-        };
-      }).filter(function(ds) {
-        // Only include varietals that have at least one price entry
-        return ds.data.some(function(v) { return v !== null; });
+        });
       });
 
+      // 2. SKU Base Price (blue, ptType = 'base')
+      if (skuCropEntries.length > 0) {
+        var baseData = dateKeys.map(function(dk) {
+          var e = skuCropEntries.find(function(c) {
+            return String(c.cropYear).padStart(4,'0') + String(c.cropMonth).padStart(2,'0') === dk && c.baseGreenPrice;
+          });
+          return e ? parseFloat(e.baseGreenPrice) : null;
+        });
+        if (baseData.some(function(v) { return v !== null; })) {
+          datasets.push({
+            label: (selectedSku ? selectedSku.name : 'SKU') + ' — Base Price',
+            ptType: 'base',
+            data: baseData,
+            borderColor: '#4A7FC1',
+            backgroundColor: 'rgba(74,127,193,0.06)',
+            pointBackgroundColor: '#4A7FC1',
+            pointRadius: 6,
+            pointHoverRadius: 9,
+            tension: 0.3,
+            fill: false,
+            borderDash: [6, 3],
+            spanGaps: false
+          });
+        }
+      }
+
+      // 3. SKU Final Release Price (amber, ptType = 'final')
+      if (skuCropEntries.length > 0) {
+        var finalData = dateKeys.map(function(dk) {
+          var e = skuCropEntries.find(function(c) {
+            return String(c.cropYear).padStart(4,'0') + String(c.cropMonth).padStart(2,'0') === dk && c.finalReleasePrice;
+          });
+          return e ? parseFloat(e.finalReleasePrice) : null;
+        });
+        if (finalData.some(function(v) { return v !== null; })) {
+          datasets.push({
+            label: (selectedSku ? selectedSku.name : 'SKU') + ' — Final Release',
+            ptType: 'final',
+            data: finalData,
+            borderColor: '#C07030',
+            backgroundColor: 'rgba(192,112,48,0.06)',
+            pointBackgroundColor: '#C07030',
+            pointRadius: 6,
+            pointHoverRadius: 9,
+            tension: 0.3,
+            fill: false,
+            borderDash: [10, 4],
+            spanGaps: false
+          });
+        }
+      }
+
       if (datasets.length === 0) {
-        showEmpty('No price entries found for this producer\'s varietals. Add entries in Green Varietals tab.');
+        showEmpty('No plottable data found for current selection.');
         return;
       }
 
-      empty.style.display  = 'none';
-      canvas.style.display = 'block';
-      stats.style.display  = 'block';
+      empty.style.display     = 'none';
+      canvas.style.display    = 'block';
+      stats.style.display     = 'block';
+      togglesEl.style.display = 'flex';
+
+      // Show/dim toggle buttons based on which datasets exist
+      var hasBase     = datasets.some(function(d) { return d.ptType === 'base'; });
+      var hasFinal    = datasets.some(function(d) { return d.ptType === 'final'; });
+      var hasVarietal = datasets.some(function(d) { return d.ptType === 'varietal'; });
+      document.getElementById('ptToggleVarietals').style.opacity = hasVarietal ? '1' : '0.35';
+      document.getElementById('ptToggleBase').style.opacity      = hasBase     ? '1' : '0.35';
+      document.getElementById('ptToggleFinal').style.opacity     = hasFinal    ? '1' : '0.35';
+      // Reset toggle visual to "active" state
+      ptSetToggleActive('ptToggleVarietals', '#2D5940', true);
+      ptSetToggleActive('ptToggleBase',      '#4A7FC1', true);
+      ptSetToggleActive('ptToggleFinal',     '#C07030', true);
+
+      var producerName = (producers.find(function(p) { return p.id === producerId; }) || {}).name || '';
 
       if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
       var ctx = canvas.getContext('2d');
@@ -3619,11 +3712,12 @@
           plugins: {
             legend: {
               position: 'top',
-              labels: { font: { family: 'DM Sans, sans-serif', size: 12 }, padding: 16 }
+              labels: { font: { family: 'DM Sans, sans-serif', size: 12 }, padding: 16,
+                usePointStyle: true, pointStyle: 'circle' }
             },
             title: {
               display: true,
-              text: 'Green Coffee Bought Prices — ' + (producers.find(function(p) { return p.id === producerId; }) || {}).name,
+              text: 'Price History — ' + producerName,
               font: { family: 'DM Sans, sans-serif', size: 13, weight: '600' },
               color: '#1A1816',
               padding: { bottom: 12 }
@@ -3660,33 +3754,29 @@
       var elBase     = document.getElementById('ptStatBase');
       var elBaseDate = document.getElementById('ptStatBaseDate');
       var elBaseSku  = document.getElementById('ptStatBaseSku');
-      if (skuId) {
-        var skuEntries = cropEntries.filter(function(e) { return e.skuId === skuId; })
-          .sort(function(a, b) {
-            return (String(b.cropYear) + String(b.cropMonth)).localeCompare(String(a.cropYear) + String(a.cropMonth));
-          });
-        var latestBase = skuEntries.find(function(e) { return e.baseGreenPrice; });
-        var selectedSku = skus.find(function(s) { return s.id === skuId; });
+      if (skuId && skuCropEntries.length > 0) {
+        var sortedSku = skuCropEntries.slice().sort(function(a, b) {
+          return (String(b.cropYear) + String(b.cropMonth)).localeCompare(String(a.cropYear) + String(a.cropMonth));
+        });
+        var latestBase = sortedSku.find(function(e) { return e.baseGreenPrice; });
         if (latestBase) {
           elBase.textContent     = '₹' + parseFloat(latestBase.baseGreenPrice).toFixed(0) + '/kg';
           elBaseDate.textContent = latestBase.cropMonth + '/' + latestBase.cropYear;
-          elBaseSku.textContent  = selectedSku ? selectedSku.name : '';
         } else {
           elBase.textContent     = '—';
-          elBaseDate.textContent = 'No crop entries yet';
-          elBaseSku.textContent  = selectedSku ? selectedSku.name : '';
+          elBaseDate.textContent = 'No base price set';
         }
+        elBaseSku.textContent = selectedSku ? selectedSku.name : '';
       } else {
         elBase.textContent     = '—';
-        elBaseDate.textContent = '';
+        elBaseDate.textContent = skuId ? 'No crop entries' : '';
         elBaseSku.textContent  = 'Select a SKU above';
       }
 
-      // Card 2: Latest Green Varietal Prices (all varietals for this producer)
+      // Card 2: Latest Green Varietal Prices
       var elVarietals = document.getElementById('ptStatVarietals');
       if (producerVarietals.length === 0) {
-        elVarietals.innerHTML =
-          '<div style="color:var(--text-tertiary);font-size:0.85rem;font-style:italic;">No varietals added yet.</div>';
+        elVarietals.innerHTML = '<div style="color:var(--text-tertiary);font-size:0.85rem;font-style:italic;">No varietals added yet.</div>';
       } else {
         elVarietals.innerHTML = producerVarietals.map(function(gv, idx) {
           var color  = PT_COLORS[idx % PT_COLORS.length].border;
@@ -3720,28 +3810,54 @@
       var elFinal     = document.getElementById('ptStatFinal');
       var elFinalDate = document.getElementById('ptStatFinalDate');
       var elFinalSku  = document.getElementById('ptStatFinalSku');
-      if (skuId) {
-        var skuEntries2 = cropEntries.filter(function(e) { return e.skuId === skuId; })
-          .sort(function(a, b) {
-            return (String(b.cropYear) + String(b.cropMonth)).localeCompare(String(a.cropYear) + String(a.cropMonth));
-          });
-        var latestFinal = skuEntries2.find(function(e) { return e.finalReleasePrice; });
-        var selectedSku2 = skus.find(function(s) { return s.id === skuId; });
+      if (skuId && skuCropEntries.length > 0) {
+        var sortedSku2  = skuCropEntries.slice().sort(function(a, b) {
+          return (String(b.cropYear) + String(b.cropMonth)).localeCompare(String(a.cropYear) + String(a.cropMonth));
+        });
+        var latestFinal = sortedSku2.find(function(e) { return e.finalReleasePrice; });
         if (latestFinal) {
           elFinal.textContent     = '₹' + parseFloat(latestFinal.finalReleasePrice).toFixed(0) + '/kg';
           elFinalDate.textContent = latestFinal.cropMonth + '/' + latestFinal.cropYear;
-          elFinalSku.textContent  = selectedSku2 ? selectedSku2.name : '';
         } else {
           elFinal.textContent     = 'Not set';
           elFinalDate.textContent = 'No final price recorded';
-          elFinalSku.textContent  = selectedSku2 ? selectedSku2.name : '';
         }
+        elFinalSku.textContent = selectedSku ? selectedSku.name : '';
       } else {
         elFinal.textContent     = '—';
-        elFinalDate.textContent = '';
+        elFinalDate.textContent = skuId ? 'No crop entries' : '';
         elFinalSku.textContent  = 'Select a SKU above';
       }
     }
+
+    // ── Toggle helpers ─────────────────────────────────────────────────────
+    function ptSetToggleActive(btnId, color, active) {
+      var btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.style.background = active ? color : 'transparent';
+      btn.style.color      = active ? '#fff' : color;
+    }
+
+    window.ptToggleDataset = function(type) {
+      if (!ptChartInstance) return;
+      // Determine current state by checking first dataset of this type
+      var firstIdx = -1;
+      ptChartInstance.data.datasets.forEach(function(ds, i) {
+        if (ds.ptType === type && firstIdx === -1) firstIdx = i;
+      });
+      if (firstIdx === -1) return;
+      var nowVisible = ptChartInstance.isDatasetVisible(firstIdx);
+      var makeVisible = !nowVisible;
+
+      ptChartInstance.data.datasets.forEach(function(ds, i) {
+        if (ds.ptType === type) ptChartInstance.setDatasetVisibility(i, makeVisible);
+      });
+      ptChartInstance.update();
+
+      var colorMap = { varietal: '#2D5940', base: '#4A7FC1', final: '#C07030' };
+      var btnMap   = { varietal: 'ptToggleVarietals', base: 'ptToggleBase', final: 'ptToggleFinal' };
+      ptSetToggleActive(btnMap[type], colorMap[type], makeVisible);
+    };
 
     // ============================================
     // SETTINGS
