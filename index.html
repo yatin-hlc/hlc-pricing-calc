@@ -2092,7 +2092,8 @@
         if (appContainer) appContainer.style.display = '';
         if (bagTabBar)    bagTabBar.style.display    = '';
         if (settingsBar)  settingsBar.style.display  = '';
-        if (signInOvl)    signInOvl.style.display    = '';
+        // Keep overlay hidden — user is signed in; '' would revert to its base display:flex
+        if (signInOvl)    signInOvl.style.display    = 'none';
         area.innerHTML = '';
         document.title = 'HLC Pricing Calculator';
       }
@@ -3537,12 +3538,27 @@
 
     // Wire up Google Sign-In button
     const googleProvider = new firebase.auth.GoogleAuthProvider();
-    document.getElementById('googleSignInBtn').addEventListener('click', () => {
-      auth.signInWithPopup(googleProvider).catch(err => {
-        const errEl = document.getElementById('signInError');
-        errEl.textContent = 'Sign-in failed: ' + err.message;
-        errEl.style.display = 'block';
-      });
+    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // Handle redirect result on page load (fires after signInWithRedirect completes)
+    auth.getRedirectResult().catch(function(err) {
+      if (err && err.code !== 'auth/no-auth-event') {
+        var errEl = document.getElementById('signInError');
+        if (errEl) { errEl.textContent = 'Sign-in failed: ' + err.message; errEl.style.display = 'block'; }
+      }
+    });
+
+    document.getElementById('googleSignInBtn').addEventListener('click', function() {
+      var errEl = document.getElementById('signInError');
+      if (errEl) errEl.style.display = 'none';
+      if (isMobile) {
+        // Redirect is reliable on mobile (popup is blocked by iOS Safari / Android Chrome)
+        auth.signInWithRedirect(googleProvider);
+      } else {
+        auth.signInWithPopup(googleProvider).catch(function(err) {
+          if (errEl) { errEl.textContent = 'Sign-in failed: ' + err.message; errEl.style.display = 'block'; }
+        });
+      }
     });
 
     // Gate the entire app on auth state — runs on every page load
