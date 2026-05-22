@@ -2540,10 +2540,11 @@
       var displayStatus = sku.status === 'active' ? 'live' : sku.status;
       var canAdd        = displayStatus === 'live';
 
-      var entryRows = entries.map(function(e) {
+      var entryRows = entries.map(function(e, ei) {
         var base  = e.baseGreenPrice    ? '&#8377;' + parseFloat(e.baseGreenPrice).toFixed(0)    : '—';
         var final = e.finalReleasePrice ? '&#8377;' + parseFloat(e.finalReleasePrice).toFixed(0) : null;
         return '<tr style="border-bottom:1px solid var(--border-light);">' +
+          '<td style="padding:0.65rem 1rem;color:var(--text-tertiary);font-size:0.85rem;width:48px;">' + (ei + 1) + '</td>' +
           '<td style="padding:0.65rem 1rem;">' +
             '<span style="display:inline-block;background:#FFF7ED;color:var(--accent-coffee);border:1px solid #FED7AA;' +
               'border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">' +
@@ -2562,6 +2563,7 @@
       var cropEntriesContent = entries.length
         ? '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);border-radius:8px;overflow:hidden;border:1px solid var(--border-light);">' +
           '<thead style="background:var(--bg-tertiary);"><tr>' +
+          '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:48px;">S.No.</th>' +
           '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Green Purchase Month/Year</th>' +
           '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Base Green &#8377;/kg</th>' +
           '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Final Release &#8377;/kg</th>' +
