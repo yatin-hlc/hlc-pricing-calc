@@ -2995,7 +2995,8 @@
 
       activeProducers.forEach(function(producer, pIdx) {
         // When searching, only show producer sections that have matching varietals
-        const pVarietals = filteredVarietals.filter(function(gv) { return gv.producerId === producer.id; });
+        const pVarietals = filteredVarietals.filter(function(gv) { return gv.producerId === producer.id; })
+          .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
         if (searchTerm && pVarietals.length === 0) return;
         anySection = true;
 
