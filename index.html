@@ -608,7 +608,7 @@
       .header, .nav-tabs, .bag-tabs,
       #printPdfBtn, #saveVersionBtn, #printPdfBtn250, #saveVersionBtn250,
       #bagTabBar, #settingsTabBar,
-      #printOptionsModal, #logPrintArea { display: none !important; }
+      #printOptionsModal, #logPrintArea, #ptPrintArea { display: none !important; }
 
       /* Show print logo */
       #calcPrintLogo { display: block !important; }
@@ -648,6 +648,25 @@
       body.printing-log #settingsTabBar,
       body.printing-log .toast-container { display: none !important; }
       body.printing-log #logPrintArea { display: block !important; }
+
+      /* Price Tracker print mode */
+      body.printing-tracker .app-container,
+      body.printing-tracker #bagTabBar,
+      body.printing-tracker #settingsTabBar,
+      body.printing-tracker .toast-container { display: none !important; }
+      body.printing-tracker #ptPrintArea { display: block !important; }
+
+      #ptPrintArea {
+        font-family: 'DM Sans', sans-serif; color: #2C2018; padding: 2rem; font-size: 0.9rem;
+      }
+      #ptPrintArea h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 1.5rem; color: #3C2415; margin: 0 0 0.2rem; }
+      #ptPrintArea .pt-stat-grid { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 1rem; margin-top: 1.25rem; }
+      #ptPrintArea .pt-stat-card { border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem 1rem; background: #fafaf8; }
+      #ptPrintArea .pt-stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9B8578; margin-bottom: 0.35rem; }
+      #ptPrintArea .pt-stat-value { font-size: 1.2rem; font-weight: 700; }
+      #ptPrintArea .pt-stat-date  { font-size: 0.75rem; color: #9B8578; margin-top: 0.15rem; }
+      #ptPrintArea .pt-varietal-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0.5rem; border-radius: 4px; background: #f4f3ef; margin-bottom: 0.3rem; font-size: 0.85rem; }
+      #ptPrintArea .pt-varietal-price { font-weight: 700; }
 
       #logPrintArea {
         font-family: 'DM Sans', sans-serif; color: #2C2018; padding: 2rem; font-size: 0.9rem;
@@ -1276,7 +1295,7 @@
 
         <div class="card" style="position:relative;min-height:320px;">
           <!-- Toggle chips — shown when chart has data -->
-          <div id="ptToggles" style="display:none;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <div id="ptToggles" style="display:none;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
             <button id="ptToggleVarietals" onclick="ptToggleDataset('varietal')"
               style="background:#2D5940;color:#fff;border:1.5px solid #2D5940;border-radius:20px;padding:0.3rem 0.9rem;font-size:0.8rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;">
               🌿 Varietal Prices
@@ -1288,6 +1307,12 @@
             <button id="ptToggleFinal" onclick="ptToggleDataset('final')"
               style="background:#C07030;color:#fff;border:1.5px solid #C07030;border-radius:20px;padding:0.3rem 0.9rem;font-size:0.8rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;">
               🏷️ Final Release Price
+            </button>
+            <button id="ptPrintBtn" onclick="printPriceTracker()"
+              style="margin-left:auto;background:var(--bg-secondary);border:1.5px solid var(--border-medium);border-radius:20px;padding:0.3rem 0.9rem;font-size:0.8rem;font-weight:600;font-family:inherit;cursor:pointer;color:var(--text-secondary);transition:all 0.2s;"
+              onmouseover="this.style.borderColor='var(--accent-coffee)';this.style.color='var(--accent-coffee)';"
+              onmouseout="this.style.borderColor='var(--border-medium)';this.style.color='var(--text-secondary)';">
+              🖨 Print / Save PDF
             </button>
           </div>
           <div id="ptEmptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:0.5rem;color:var(--text-tertiary);">
@@ -1682,6 +1707,7 @@
   <!-- Toast container -->
   <div id="toastContainer" class="toast-container"></div>
   <div id="logPrintArea" style="display:none;"></div>
+  <div id="ptPrintArea"  style="display:none;"></div>
 
   <!-- ══════════════════════════════════════════ -->
   <!--  SIGN-IN OVERLAY                         -->
@@ -3973,6 +3999,134 @@
       var btnMap   = { varietal: 'ptToggleVarietals', base: 'ptToggleBase', final: 'ptToggleFinal' };
       ptSetToggleActive(btnMap[type], colorMap[type], makeVisible);
     };
+
+    // ============================================
+    // PRICE TRACKER PRINT
+    // ============================================
+
+    function printPriceTracker() {
+      if (!ptChartInstance) {
+        showToast('Select a producer to generate the chart first', 'warning');
+        return;
+      }
+
+      var producerId   = document.getElementById('ptProducerFilter').value;
+      var skuId        = document.getElementById('ptSkuNameFilter').value;
+      var producer     = producers.find(function(p) { return p.id === producerId; });
+      var selectedSku  = skuId ? skus.find(function(s) { return s.id === skuId; }) : null;
+      var producerName = producer ? producer.name : '';
+      var dateStr      = new Date().toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
+
+      // Chart as image
+      var chartImgSrc = ptChartInstance.toBase64Image();
+
+      // Logo
+      var logoEl  = document.querySelector('.logo img');
+      var logoTag = logoEl
+        ? '<img src="' + logoEl.src + '" style="height:48px;width:auto;display:block;margin-bottom:0.75rem;">'
+        : '';
+
+      // Stat card 1 — Latest SKU Base Price
+      var elBase     = document.getElementById('ptStatBase');
+      var elBaseDate = document.getElementById('ptStatBaseDate');
+      var elBaseSku  = document.getElementById('ptStatBaseSku');
+      var baseVal    = elBase     ? elBase.textContent     : '—';
+      var baseDateVal= elBaseDate ? elBaseDate.textContent : '';
+      var baseSkuVal = elBaseSku  ? elBaseSku.textContent  : '';
+
+      // Stat card 2 — Varietal prices list (build fresh from data)
+      var producerVarietals = greenVarietals.filter(function(gv) { return gv.producerId === producerId; });
+      var varietalRowsHtml  = '';
+      if (producerVarietals.length === 0) {
+        varietalRowsHtml = '<div style="color:#9B8578;font-style:italic;font-size:0.85rem;">No varietals added yet.</div>';
+      } else {
+        producerVarietals.forEach(function(gv, idx) {
+          var color  = PT_COLORS[idx % PT_COLORS.length].border;
+          var prices = greenVarietalPrices
+            .filter(function(p) { return p.varietalId === gv.id; })
+            .sort(function(a, b) {
+              return (String(b.year).padStart(4,'0') + String(b.month).padStart(2,'0'))
+                .localeCompare(String(a.year).padStart(4,'0') + String(a.month).padStart(2,'0'));
+            });
+          var latest = prices[0];
+          varietalRowsHtml +=
+            '<div class="pt-varietal-row">' +
+              '<div style="display:flex;align-items:center;gap:0.4rem;">' +
+                '<span style="width:9px;height:9px;border-radius:50%;background:' + color + ';display:inline-block;flex-shrink:0;"></span>' +
+                '<span style="font-weight:600;">' + gv.name + '</span>' +
+              '</div>' +
+              (latest
+                ? '<div><span class="pt-varietal-price" style="color:' + color + ';">&#8377;' + parseFloat(latest.boughtPrice).toFixed(0) + '/kg</span>'
+                  + '<span style="font-size:0.72rem;color:#9B8578;margin-left:0.4rem;">'
+                  + String(latest.month).padStart(2,'0') + '/' + latest.year + '</span></div>'
+                : '<span style="font-size:0.78rem;color:#9B8578;font-style:italic;">no entries</span>'
+              ) +
+            '</div>';
+        });
+      }
+
+      // Stat card 3 — Latest Final Release Price
+      var elFinal     = document.getElementById('ptStatFinal');
+      var elFinalDate = document.getElementById('ptStatFinalDate');
+      var elFinalSku  = document.getElementById('ptStatFinalSku');
+      var finalVal    = elFinal     ? elFinal.textContent     : '—';
+      var finalDateVal= elFinalDate ? elFinalDate.textContent : '';
+      var finalSkuVal = elFinalSku  ? elFinalSku.textContent  : '';
+
+      var html =
+        logoTag +
+        '<h1>' + 'Price Tracker — ' + producerName + '</h1>' +
+        (selectedSku ? '<div style="font-size:0.95rem;font-weight:600;color:#5C3D2E;margin-bottom:0.2rem;">SKU: ' + selectedSku.name + '</div>' : '') +
+        '<div style="font-size:0.78rem;color:#9B8578;margin-bottom:1.25rem;">' + dateStr + '</div>' +
+        '<img src="' + chartImgSrc + '" style="width:100%;max-width:720px;border:1px solid #e8e6e1;border-radius:6px;display:block;margin-bottom:0;">' +
+        '<div class="pt-stat-grid">' +
+          '<div class="pt-stat-card">' +
+            '<div class="pt-stat-label">Latest SKU Base Price</div>' +
+            '<div class="pt-stat-value" style="color:#2D5940;">' + baseVal + '</div>' +
+            '<div class="pt-stat-date">' + baseDateVal + '</div>' +
+            (baseSkuVal ? '<div class="pt-stat-date" style="font-style:italic;">' + baseSkuVal + '</div>' : '') +
+          '</div>' +
+          '<div class="pt-stat-card">' +
+            '<div class="pt-stat-label">Latest Green Varietal Bought Prices</div>' +
+            varietalRowsHtml +
+          '</div>' +
+          '<div class="pt-stat-card">' +
+            '<div class="pt-stat-label">Latest Final Release Price</div>' +
+            '<div class="pt-stat-value" style="color:#5C3D2E;">' + finalVal + '</div>' +
+            '<div class="pt-stat-date">' + finalDateVal + '</div>' +
+            (finalSkuVal ? '<div class="pt-stat-date" style="font-style:italic;">' + finalSkuVal + '</div>' : '') +
+          '</div>' +
+        '</div>';
+
+      var area         = document.getElementById('ptPrintArea');
+      var appContainer = document.querySelector('.app-container');
+      var bagTabBar    = document.getElementById('bagTabBar');
+      var settingsBar  = document.getElementById('settingsTabBar');
+      var signInOvl    = document.getElementById('signInOverlay');
+
+      area.innerHTML   = html;
+      document.title   = 'Price Tracker — ' + producerName;
+
+      document.body.classList.add('printing-tracker');
+      if (appContainer) appContainer.style.display = 'none';
+      if (bagTabBar)    bagTabBar.style.display    = 'none';
+      if (settingsBar)  settingsBar.style.display  = 'none';
+      if (signInOvl)    signInOvl.style.display    = 'none';
+
+      function restoreAfterPrint() {
+        document.body.classList.remove('printing-tracker');
+        if (appContainer) appContainer.style.display = '';
+        if (bagTabBar)    bagTabBar.style.display    = '';
+        if (settingsBar)  settingsBar.style.display  = '';
+        if (signInOvl)    signInOvl.style.display    = 'none';
+        area.innerHTML = '';
+        document.title = 'HLC Pricing Calculator';
+      }
+
+      window.addEventListener('afterprint', restoreAfterPrint, { once: true });
+      setTimeout(function() { window.print(); }, 60);
+    }
+    window.printPriceTracker = printPriceTracker;
 
     // ============================================
     // SETTINGS
