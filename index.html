@@ -3569,27 +3569,23 @@
 
     // Wire up Google Sign-In button
     const googleProvider = new firebase.auth.GoogleAuthProvider();
-    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    // Handle redirect result on page load (fires after signInWithRedirect completes)
-    auth.getRedirectResult().catch(function(err) {
-      if (err && err.code !== 'auth/no-auth-event') {
-        var errEl = document.getElementById('signInError');
-        if (errEl) { errEl.textContent = 'Sign-in failed: ' + err.message; errEl.style.display = 'block'; }
-      }
-    });
 
     document.getElementById('googleSignInBtn').addEventListener('click', function() {
       var errEl = document.getElementById('signInError');
       if (errEl) errEl.style.display = 'none';
-      if (isMobile) {
-        // Redirect is reliable on mobile (popup is blocked by iOS Safari / Android Chrome)
-        auth.signInWithRedirect(googleProvider);
-      } else {
-        auth.signInWithPopup(googleProvider).catch(function(err) {
+      // Try popup first on all devices — it works on normal mobile browsers too.
+      // Only fall back to redirect if the browser explicitly blocks the popup.
+      // (Redirect fails in incognito because it needs localStorage for the auth handoff.)
+      auth.signInWithPopup(googleProvider).catch(function(err) {
+        if (err.code === 'auth/popup-blocked') {
+          // Browser blocked the popup window — redirect is the only option
+          auth.signInWithRedirect(googleProvider);
+        } else if (err.code === 'auth/cancelled-popup-request') {
+          // User tapped the button twice — safe to ignore, first popup is still open
+        } else {
           if (errEl) { errEl.textContent = 'Sign-in failed: ' + err.message; errEl.style.display = 'block'; }
-        });
-      }
+        }
+      });
     });
 
     // Gate the entire app on auth state
