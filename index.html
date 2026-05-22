@@ -701,7 +701,7 @@
         </div><nav class="nav-tabs">
           <button class="nav-tab active" data-view="calculator">Calculator</button>
           <button class="nav-tab" data-view="skus">Coffee SKUs</button>
-          <button class="nav-tab" data-view="greenVarietals">Green Varietals</button>
+          <button class="nav-tab" data-view="greenVarietals">Green Coffee Buying (Varietals)</button>
           <button class="nav-tab" data-view="logs">History</button>
           <button class="nav-tab" data-view="pricetracker">Price Tracker</button>
           <button class="nav-tab" data-view="settings">Settings</button>
@@ -1215,8 +1215,8 @@
         <div class="card">
           <div class="sku-header" style="margin-bottom:1.25rem;">
             <div>
-              <h2 class="card-title">Green Coffee Varietals</h2>
-              <p class="card-subtitle">Raw green coffee sources — for sourcing records and price tracking only</p>
+              <h2 class="card-title">Green Coffee Buying (Varietals)</h2>
+              <p class="card-subtitle">Annual green coffee buying log — sourcing records, invoice dates, shipment tracking</p>
             </div>
             <button class="btn btn-primary" id="addGreenVarietalBtn">+ Add Varietal</button>
           </div>
@@ -1623,15 +1623,15 @@
 
   <!-- Green Varietal Price Entry Modal -->
   <div class="modal-overlay" id="gvPriceModal">
-    <div class="modal" style="max-width:400px;">
+    <div class="modal" style="max-width:520px;">
       <div class="modal-header">
-        <h3 class="modal-title" id="gvPriceModalTitle">Add Price Entry</h3>
+        <h3 class="modal-title" id="gvPriceModalTitle">Add Buying Entry</h3>
         <button class="modal-close" id="closeGvPriceModal">×</button>
       </div>
       <div class="modal-body">
         <p id="gvPriceLabel" style="font-size:0.875rem;font-weight:600;color:var(--accent-coffee);margin-bottom:1rem;"></p>
         <div class="form-group">
-          <label class="required">Month &amp; Year</label>
+          <label class="required">Invoice Month &amp; Year</label>
           <div style="display:flex;gap:0.75rem;">
             <select id="gvPriceMonth" style="flex:1;">
               <option value="01">January</option><option value="02">February</option>
@@ -1645,10 +1645,34 @@
           </div>
         </div>
         <div class="form-group">
+          <label>Shipment Receiving Month &amp; Year</label>
+          <div style="display:flex;gap:0.75rem;">
+            <select id="gvShipmentMonth" style="flex:1;">
+              <option value="01">January</option><option value="02">February</option>
+              <option value="03">March</option><option value="04">April</option>
+              <option value="05">May</option><option value="06">June</option>
+              <option value="07">July</option><option value="08">August</option>
+              <option value="09">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+            <input type="number" id="gvShipmentYear" placeholder="2025" min="2000" max="2099" style="flex:1;">
+          </div>
+        </div>
+        <div class="form-group">
           <label for="gvBoughtPrice" class="required">Bought Price (₹/kg)</label>
           <div class="input-wrapper">
             <span class="currency-prefix">₹</span>
             <input type="number" id="gvBoughtPrice" class="has-prefix" placeholder="0" min="0" step="1">
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;">
+          <div class="form-group" style="flex:1;">
+            <label for="gvQuantityKg">Quantity Received (kg)</label>
+            <input type="number" id="gvQuantityKg" class="form-input" placeholder="0" min="0" step="0.1">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label for="gvSacks">Coffee Sacks Received</label>
+            <input type="number" id="gvSacks" class="form-input" placeholder="0" min="0" step="1">
           </div>
         </div>
       </div>
@@ -3018,16 +3042,24 @@
             const priceCount = prices.length;
 
             const priceRows = prices.map(function(p) {
+              var shipDate = (p.shipmentMonth && p.shipmentYear)
+                ? String(p.shipmentMonth).padStart(2,'0') + '/' + p.shipmentYear
+                : '—';
+              var qtyTxt   = p.quantityKg != null ? p.quantityKg + ' kg' : '—';
+              var sacksTxt = p.sacks      != null ? p.sacks              : '—';
               return '<tr style="border-bottom:1px solid var(--border-light);">' +
-                '<td style="padding:0.65rem 1rem;">' +
+                '<td style="padding:0.65rem 1rem;min-width:90px;">' +
                   '<span style="display:inline-block;background:#F0FDF4;color:var(--accent-green);border:1px solid #BBF7D0;' +
                     'border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">' +
                     String(p.month).padStart(2,'0') + '/' + p.year +
                   '</span>' +
                 '</td>' +
+                '<td style="padding:0.65rem 1rem;min-width:90px;color:var(--text-secondary);font-size:0.875rem;">' + shipDate + '</td>' +
                 '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">₹' +
                   parseFloat(p.boughtPrice).toFixed(0) + '/kg' +
                 '</td>' +
+                '<td style="padding:0.65rem 1rem;color:var(--text-secondary);font-size:0.875rem;">' + qtyTxt + '</td>' +
+                '<td style="padding:0.65rem 1rem;color:var(--text-secondary);font-size:0.875rem;">' + sacksTxt + '</td>' +
                 '<td style="padding:0.65rem 1rem;text-align:right;">' +
                   '<button class="action-btn" style="font-size:0.8rem;" onclick="editGvPrice(\'' + p.id + '\')">Edit</button>' +
                   '<button class="action-btn action-btn-danger" style="font-size:0.8rem;" onclick="deleteGvPrice(\'' + p.id + '\')">Delete</button>' +
@@ -3038,15 +3070,18 @@
             const subTableContent = prices.length
               ? '<table style="width:100%;border-collapse:collapse;background:var(--bg-tertiary);border-radius:6px;overflow:hidden;border:1px solid var(--border-light);">' +
                   '<thead style="background:var(--bg-primary);"><tr>' +
-                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Month/Year</th>' +
+                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;min-width:90px;">Invoice Date</th>' +
+                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;min-width:90px;">Shipment Date</th>' +
                     '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Bought Price</th>' +
+                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Qty (kg)</th>' +
+                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Sacks</th>' +
                     '<th style="padding:0.45rem 1rem;"></th>' +
                   '</tr></thead>' +
                   '<tbody>' + priceRows + '</tbody>' +
                 '</table>'
               : '<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-radius:6px;' +
                   'padding:1rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">' +
-                  'No price entries yet — click <strong style="color:var(--accent-green);">+ Add Price Entry</strong> to start tracking.' +
+                  'No buying entries yet — click <strong style="color:var(--accent-green);">+ Add Buying Entry</strong> to start tracking.' +
                 '</div>';
 
             const subRow =
@@ -3054,14 +3089,14 @@
                 '<td colspan="4" style="padding:0;border-left:3px solid var(--accent-green);border-bottom:2px solid var(--accent-green);">' +
                   '<div style="background:var(--bg-primary);padding:1rem 1.25rem;">' +
                     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">' +
-                      '<span style="font-size:0.9rem;font-weight:700;color:var(--accent-green);">' + gv.name + ' — price history</span>' +
+                      '<span style="font-size:0.9rem;font-weight:700;color:var(--accent-green);">' + gv.name + ' — buying history</span>' +
                       '<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-green);border-radius:6px;' +
                         'padding:0.3rem 0.8rem;cursor:pointer;color:var(--accent-green);font-size:0.78rem;font-weight:600;' +
                         'font-family:inherit;transition:all 0.15s;" ' +
                         'onclick="openGvPriceModal(\'' + gv.id + '\')" ' +
                         'onmouseover="this.style.background=\'var(--accent-green)\';this.style.color=\'#fff\';" ' +
                         'onmouseout="this.style.background=\'var(--bg-secondary)\';this.style.color=\'var(--accent-green)\';">' +
-                        '+ Add Price Entry' +
+                        '+ Add Buying Entry' +
                       '</button>' +
                     '</div>' +
                     subTableContent +
@@ -3191,12 +3226,18 @@
       const prod = gv ? producers.find(function(p) { return p.id === gv.producerId; }) : null;
       document.getElementById('gvPriceLabel').textContent =
         (prod ? prod.name + ' — ' : '') + (gv ? gv.name : '');
-      document.getElementById('gvPriceModalTitle').textContent = price ? 'Edit Price Entry' : 'Add Price Entry';
+      document.getElementById('gvPriceModalTitle').textContent = price ? 'Edit Buying Entry' : 'Add Buying Entry';
 
       const now = new Date();
-      document.getElementById('gvPriceMonth').value  = price ? price.month : String(now.getMonth() + 1).padStart(2, '0');
-      document.getElementById('gvPriceYear').value   = price ? price.year  : now.getFullYear();
-      document.getElementById('gvBoughtPrice').value = price ? price.boughtPrice : '';
+      const nowMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const nowYear  = now.getFullYear();
+      document.getElementById('gvPriceMonth').value    = price ? price.month       : nowMonth;
+      document.getElementById('gvPriceYear').value     = price ? price.year        : nowYear;
+      document.getElementById('gvShipmentMonth').value = price ? (price.shipmentMonth || nowMonth) : nowMonth;
+      document.getElementById('gvShipmentYear').value  = price ? (price.shipmentYear  || nowYear)  : nowYear;
+      document.getElementById('gvBoughtPrice').value   = price ? price.boughtPrice : '';
+      document.getElementById('gvQuantityKg').value    = price ? (price.quantityKg  != null ? price.quantityKg  : '') : '';
+      document.getElementById('gvSacks').value         = price ? (price.sacks       != null ? price.sacks       : '') : '';
 
       document.getElementById('gvPriceModal').classList.add('active');
       setTimeout(function() { document.getElementById('gvBoughtPrice').focus(); }, 50);
@@ -3209,19 +3250,27 @@
     }
 
     function saveGvPrice() {
-      const month = document.getElementById('gvPriceMonth').value;
-      const year  = document.getElementById('gvPriceYear').value.trim();
-      const price = document.getElementById('gvBoughtPrice').value;
+      const month         = document.getElementById('gvPriceMonth').value;
+      const year          = document.getElementById('gvPriceYear').value.trim();
+      const price         = document.getElementById('gvBoughtPrice').value;
+      const shipmentMonth = document.getElementById('gvShipmentMonth').value;
+      const shipmentYear  = document.getElementById('gvShipmentYear').value.trim();
+      const quantityKg    = document.getElementById('gvQuantityKg').value;
+      const sacks         = document.getElementById('gvSacks').value;
 
-      if (!year || isNaN(year) || year < 2000 || year > 2099) { showToast('Please enter a valid year (2000–2099)', 'warning'); return; }
+      if (!year || isNaN(year) || year < 2000 || year > 2099) { showToast('Please enter a valid invoice year (2000–2099)', 'warning'); return; }
       if (!price || isNaN(price) || parseFloat(price) <= 0)   { showToast('Please enter a valid bought price', 'warning'); return; }
 
       const priceData = {
-        id:          editingGvPrice ? editingGvPrice.id : Date.now().toString(),
-        varietalId:  gvPriceTargetId,
-        month:       month,
-        year:        year,
-        boughtPrice: parseFloat(price)
+        id:            editingGvPrice ? editingGvPrice.id : Date.now().toString(),
+        varietalId:    gvPriceTargetId,
+        month:         month,
+        year:          year,
+        boughtPrice:   parseFloat(price),
+        shipmentMonth: shipmentMonth,
+        shipmentYear:  shipmentYear || '',
+        quantityKg:    quantityKg ? parseFloat(quantityKg) : null,
+        sacks:         sacks ? parseInt(sacks, 10) : null
       };
 
       if (editingGvPrice) {
@@ -3241,7 +3290,7 @@
         const row = document.getElementById('gvPrices_' + targetId);
         if (row) row.style.display = 'table-row';
       }, 50);
-      showToast('Price entry saved');
+      showToast('Buying entry saved');
     }
 
     window.editGvPrice = function(priceId) {
