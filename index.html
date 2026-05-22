@@ -2798,7 +2798,7 @@
       var html = '';
       var anySection = false;
 
-      activeProducers.forEach(function(producer) {
+      activeProducers.forEach(function(producer, pIdx) {
         // When searching, only show producer sections that have matching varietals
         const pVarietals = filteredVarietals.filter(function(gv) { return gv.producerId === producer.id; });
         if (searchTerm && pVarietals.length === 0) return;
@@ -2810,7 +2810,7 @@
           '<div style="display:flex;align-items:center;justify-content:space-between;' +
             'background:var(--accent-green-light);border-left:4px solid var(--accent-green);' +
             'border-radius:0 8px 8px 0;padding:0.75rem 1rem;margin-bottom:0;">' +
-            '<span style="font-weight:700;font-size:1rem;color:var(--accent-green);">🌿 ' + producer.name + '</span>' +
+            '<span style="font-weight:700;font-size:1rem;color:var(--accent-green);">🌿 ' + (pIdx + 1) + '. ' + producer.name + '</span>' +
             '<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-green);border-radius:6px;' +
               'padding:0.3rem 0.875rem;cursor:pointer;color:var(--accent-green);font-size:0.8rem;font-weight:600;' +
               'font-family:inherit;transition:all 0.15s;" ' +
