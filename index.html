@@ -4476,6 +4476,32 @@
                 :                        'Offline — using local data';
     }
 
+    // Deduplicate an array of Firebase records by their id field.
+    // When old saveData() wrote collections as arrays, Firebase stored them under
+    // numeric keys (0, 1, …). Later individual writes use the item's own id as the key.
+    // Both entries then coexist in Firebase, causing Object.values() to return duplicates.
+    // dedupeById keeps the last occurrence — numeric keys sort before string keys in JS,
+    // so the id-keyed entry (most recent) wins.
+    function dedupeById(arr) {
+      var map = {};
+      arr.forEach(function(item) { if (item && item.id) map[item.id] = item; });
+      return Object.values(map);
+    }
+
+    // On startup: remove Firebase entries whose key does not match item.id (orphaned
+    // numeric-key entries left over from old array saves). Safe to call even when there
+    // are no orphans — it simply finds nothing to delete.
+    function cleanOrphans(rawData, collectionPath) {
+      if (!rawData || typeof rawData !== 'object') return;
+      Object.keys(rawData).forEach(function(key) {
+        var item = rawData[key];
+        if (item && item.id && key !== String(item.id)) {
+          db.ref('hlc/' + collectionPath + '/' + key).remove()
+            .catch(function(e) { console.warn('[Firebase] orphan cleanup failed:', collectionPath + '/' + key, e); });
+        }
+      });
+    }
+
     async function initFromCloud() {
       try {
         setSyncStatus('syncing');
@@ -4485,16 +4511,17 @@
         if (data.settings250g)     settings250g     = data.settings250g;
         if (data.pkgBreakdown1kg)  pkgBreakdown1kg  = data.pkgBreakdown1kg;
         if (data.pkgBreakdown250g) pkgBreakdown250g = data.pkgBreakdown250g;
-        if (data.producers)        producers        = Object.values(data.producers);
-        if (data.skus)             skus             = Object.values(data.skus);
-        if (data.cropEntries)      cropEntries      = Object.values(data.cropEntries);
-        if (data.bulkTierDiscounts)       bulkTierDiscounts       = data.bulkTierDiscounts;
-        if (data.bulkTierDiscounts250)    bulkTierDiscounts250    = data.bulkTierDiscounts250;
-        if (data.greenVarietals)          greenVarietals          = Object.values(data.greenVarietals);
-        if (data.greenVarietalPrices)     greenVarietalPrices     = Object.values(data.greenVarietalPrices);
-        if (data.logs)             logs             = Object.values(data.logs)
-                                                       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                                                       .slice(0, MAX_LOGS);
+        if (data.producers)    { cleanOrphans(data.producers,           'producers');         producers         = dedupeById(Object.values(data.producers)); }
+        if (data.skus)         { cleanOrphans(data.skus,               'skus');               skus              = dedupeById(Object.values(data.skus)); }
+        if (data.cropEntries)  { cleanOrphans(data.cropEntries,        'cropEntries');        cropEntries       = dedupeById(Object.values(data.cropEntries)); }
+        if (data.bulkTierDiscounts)    bulkTierDiscounts    = data.bulkTierDiscounts;
+        if (data.bulkTierDiscounts250) bulkTierDiscounts250 = data.bulkTierDiscounts250;
+        if (data.greenVarietals)      { cleanOrphans(data.greenVarietals,      'greenVarietals');      greenVarietals      = dedupeById(Object.values(data.greenVarietals)); }
+        if (data.greenVarietalPrices) { cleanOrphans(data.greenVarietalPrices, 'greenVarietalPrices'); greenVarietalPrices = dedupeById(Object.values(data.greenVarietalPrices)); }
+        if (data.logs)         { cleanOrphans(data.logs, 'logs');
+                                 logs = dedupeById(Object.values(data.logs))
+                                          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                                          .slice(0, MAX_LOGS); }
         cloudReady = true;   // unlock Firebase writes for protected keys
         setSyncStatus('online');
       } catch (e) {
@@ -4512,7 +4539,7 @@
       // Producers — propagate instantly
       db.ref('hlc/producers').on('value', snap => {
         const data = snap.val();
-        producers = data ? Object.values(data) : [];
+        producers = data ? dedupeById(Object.values(data)) : [];
         renderProducerTable();
         updateSkuSelect();
         renderSkuTable();
@@ -4521,12 +4548,12 @@
       // SKUs + crop entries
       db.ref('hlc/skus').on('value', snap => {
         const data = snap.val();
-        skus = data ? Object.values(data) : [];
+        skus = data ? dedupeById(Object.values(data)) : [];
         updateSkuSelect(); renderSkuTable();
       });
       db.ref('hlc/cropEntries').on('value', snap => {
         const data = snap.val();
-        cropEntries = data ? Object.values(data) : [];
+        cropEntries = data ? dedupeById(Object.values(data)) : [];
         updateSkuSelect(); renderSkuTable();
       });
       // Settings — if defaults change, all open calculators recalculate
@@ -4545,12 +4572,12 @@
       // Green Varietals
       db.ref('hlc/greenVarietals').on('value', snap => {
         const data = snap.val();
-        greenVarietals = data ? Object.values(data) : [];
+        greenVarietals = data ? dedupeById(Object.values(data)) : [];
         renderGvTable();
       });
       db.ref('hlc/greenVarietalPrices').on('value', snap => {
         const data = snap.val();
-        greenVarietalPrices = data ? Object.values(data) : [];
+        greenVarietalPrices = data ? dedupeById(Object.values(data)) : [];
         renderGvTable();
       });
 
@@ -4558,7 +4585,7 @@
       db.ref('hlc/logs').on('value', snap => {
         const data = snap.val();
         logs = data
-          ? Object.values(data).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, MAX_LOGS)
+          ? dedupeById(Object.values(data)).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, MAX_LOGS)
           : [];
         renderLogs();
       });
