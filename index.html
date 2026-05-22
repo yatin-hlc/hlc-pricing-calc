@@ -2173,7 +2173,9 @@
 
       logs.unshift(version);
       if (logs.length > MAX_LOGS) logs = logs.slice(0, MAX_LOGS);
-      saveData('logs', logs);
+      // Write only this single new log — never replace the whole collection
+      localStorage.setItem('logs', JSON.stringify(logs));
+      db.ref('hlc/logs/' + version.id).set(version).catch(function(e) { console.warn('[Firebase] log save failed:', e); });
       if (noteEl) noteEl.value = '';
       setChannel('', size); // reset channel toggle
       showToast('Version saved successfully');
@@ -2890,7 +2892,9 @@
       const log   = logs.find(l => l.id === id);
       if (!log || !input) return;
       log.note = input.value.trim();
-      saveData('logs', logs);
+      // Update only this log's note field — never replace the whole collection
+      localStorage.setItem('logs', JSON.stringify(logs));
+      db.ref('hlc/logs/' + log.id + '/note').set(log.note).catch(function(e) { console.warn('[Firebase] note save failed:', e); });
       renderLogs();
     }
 
@@ -2902,7 +2906,9 @@
       const confirmed = await showConfirm('Delete this history entry? This cannot be undone.', 'Delete Entry');
       if (!confirmed) return;
       logs = logs.filter(l => l.id !== id);
-      saveData('logs', logs);
+      // Remove only this one log — never replace the whole collection
+      localStorage.setItem('logs', JSON.stringify(logs));
+      db.ref('hlc/logs/' + id).remove().catch(function(e) { console.warn('[Firebase] log delete failed:', e); });
       // If deletion emptied the current page, step back one
       const newTotal = Math.ceil(getFilteredLogs().length / LOGS_PER_PAGE) || 1;
       if (currentLogPage > newTotal) currentLogPage = newTotal;
