@@ -3027,7 +3027,8 @@
         } else {
           // Varietals table for this producer
           html +=
-            '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);' +
+            '<div style="overflow-x:auto;">' +
+            '<table style="width:100%;min-width:480px;border-collapse:collapse;background:var(--bg-secondary);' +
               'border:1px solid var(--border-light);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">' +
             '<thead>' +
               '<tr style="background:var(--bg-tertiary);">' +
@@ -3138,7 +3139,7 @@
             html += mainRow + subRow;
           });
 
-          html += '</tbody></table>';
+          html += '</tbody></table></div>';
         }
 
         html += '</div>'; // end producer section
