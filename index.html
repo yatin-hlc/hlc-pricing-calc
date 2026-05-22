@@ -1227,6 +1227,7 @@
               <option value="others">Others</option>
             </select>
             <button class="btn btn-outline" id="exportLogsBtn"><span>📥</span> Export CSV</button>
+            <button class="btn btn-outline" id="backupDataBtn" title="Download full backup of all app data as JSON"><span>🛡️</span> Backup Data</button>
           </div>
 
           <div id="logsContainer">
@@ -3404,7 +3405,27 @@
     document.getElementById('logFilterBagSize').addEventListener('change',  () => { currentLogPage = 1; renderLogs(); });
     document.getElementById('logFilterPeriod').addEventListener('change',   () => { currentLogPage = 1; renderLogs(); });
     document.getElementById('logFilterChannel').addEventListener('change',  () => { currentLogPage = 1; renderLogs(); });
-    document.getElementById('exportLogsBtn').addEventListener('click',     exportLogs);
+    document.getElementById('exportLogsBtn').addEventListener('click', exportLogs);
+
+    document.getElementById('backupDataBtn').addEventListener('click', async function() {
+      try {
+        showToast('Fetching backup from Firebase…');
+        const snap = await db.ref('hlc').get();
+        const data = snap.val() || {};
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        a.href     = url;
+        a.download = 'hlc-backup-' + date + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Backup downloaded', 'success');
+      } catch (e) {
+        showToast('Backup failed: ' + e.message, 'warning');
+      }
+    });
 
     // ============================================
     // EVENT LISTENERS — Price Tracker
