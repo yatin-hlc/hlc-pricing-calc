@@ -3475,7 +3475,10 @@
       }
     }
 
+    var listenersAttached = false;
     function attachFirebaseListeners() {
+      if (listenersAttached) return;   // never attach twice — onAuthStateChanged fires multiple times
+      listenersAttached = true;
       // Producers — propagate instantly
       db.ref('hlc/producers').on('value', snap => {
         const data = snap.val();
@@ -3561,7 +3564,10 @@
       }
     });
 
-    // Gate the entire app on auth state — runs on every page load
+    // Gate the entire app on auth state
+    // onAuthStateChanged fires on EVERY token refresh — use appInitialised flag
+    // so full init (cloud load + listener attach) only runs ONCE per page load
+    var appInitialised = false;
     auth.onAuthStateChanged(async user => {
       const overlay = document.getElementById('signInOverlay');
       if (!user) {
@@ -3569,6 +3575,8 @@
         return;
       }
       overlay.style.display = 'none';
+      if (appInitialised) return;   // token refresh — app already running, do nothing
+      appInitialised = true;
 
       // Fetch latest shared data from Firebase (falls back to localStorage if offline)
       await initFromCloud();
@@ -3584,6 +3592,7 @@
       loadSettings();
       loadPkgBreakdown('1kg');
       loadPkgBreakdown('250g');
+      renderLogs();
 
       // Attach real-time listeners so other users' changes appear live
       attachFirebaseListeners();
