@@ -4488,20 +4488,6 @@
       return Object.values(map);
     }
 
-    // On startup: remove Firebase entries whose key does not match item.id (orphaned
-    // numeric-key entries left over from old array saves). Safe to call even when there
-    // are no orphans — it simply finds nothing to delete.
-    function cleanOrphans(rawData, collectionPath) {
-      if (!rawData || typeof rawData !== 'object') return;
-      Object.keys(rawData).forEach(function(key) {
-        var item = rawData[key];
-        if (item && item.id && key !== String(item.id)) {
-          db.ref('hlc/' + collectionPath + '/' + key).remove()
-            .catch(function(e) { console.warn('[Firebase] orphan cleanup failed:', collectionPath + '/' + key, e); });
-        }
-      });
-    }
-
     async function initFromCloud() {
       try {
         setSyncStatus('syncing');
@@ -4511,17 +4497,16 @@
         if (data.settings250g)     settings250g     = data.settings250g;
         if (data.pkgBreakdown1kg)  pkgBreakdown1kg  = data.pkgBreakdown1kg;
         if (data.pkgBreakdown250g) pkgBreakdown250g = data.pkgBreakdown250g;
-        if (data.producers)    { cleanOrphans(data.producers,           'producers');         producers         = dedupeById(Object.values(data.producers)); }
-        if (data.skus)         { cleanOrphans(data.skus,               'skus');               skus              = dedupeById(Object.values(data.skus)); }
-        if (data.cropEntries)  { cleanOrphans(data.cropEntries,        'cropEntries');        cropEntries       = dedupeById(Object.values(data.cropEntries)); }
+        if (data.producers)        producers         = dedupeById(Object.values(data.producers));
+        if (data.skus)             skus              = dedupeById(Object.values(data.skus));
+        if (data.cropEntries)      cropEntries       = dedupeById(Object.values(data.cropEntries));
         if (data.bulkTierDiscounts)    bulkTierDiscounts    = data.bulkTierDiscounts;
         if (data.bulkTierDiscounts250) bulkTierDiscounts250 = data.bulkTierDiscounts250;
-        if (data.greenVarietals)      { cleanOrphans(data.greenVarietals,      'greenVarietals');      greenVarietals      = dedupeById(Object.values(data.greenVarietals)); }
-        if (data.greenVarietalPrices) { cleanOrphans(data.greenVarietalPrices, 'greenVarietalPrices'); greenVarietalPrices = dedupeById(Object.values(data.greenVarietalPrices)); }
-        if (data.logs)         { cleanOrphans(data.logs, 'logs');
-                                 logs = dedupeById(Object.values(data.logs))
-                                          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                                          .slice(0, MAX_LOGS); }
+        if (data.greenVarietals)      greenVarietals      = dedupeById(Object.values(data.greenVarietals));
+        if (data.greenVarietalPrices) greenVarietalPrices = dedupeById(Object.values(data.greenVarietalPrices));
+        if (data.logs)               logs = dedupeById(Object.values(data.logs))
+                                             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                                             .slice(0, MAX_LOGS);
         cloudReady = true;   // unlock Firebase writes for protected keys
         setSyncStatus('online');
       } catch (e) {
