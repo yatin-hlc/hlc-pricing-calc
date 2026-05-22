@@ -75,6 +75,8 @@ db.ref('hlc/producers/' + id).remove()
 | Coffee SKUs | `hlc/skus/[id]` | Individual `.set()` / `.remove()` |
 | Crop entries | `hlc/cropEntries/[id]` | Individual `.set()` / `.remove()` |
 | Producers | `hlc/producers/[id]` | Individual `.set()` / `.remove()` |
+| Green Varietals | `hlc/greenVarietals/[id]` | Individual `.set()` / `.remove()` |
+| Green Varietal Prices | `hlc/greenVarietalPrices/[id]` | Individual `.set()` / `.remove()` |
 | Settings 1kg | `hlc/settings` | `saveData()` full object replace ✅ |
 | Settings 250g | `hlc/settings250g` | `saveData()` full object replace ✅ |
 | Pkg breakdown | `hlc/pkgBreakdown1kg/250g` | `saveData()` full object replace ✅ |
