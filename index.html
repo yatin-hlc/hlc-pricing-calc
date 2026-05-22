@@ -3592,12 +3592,30 @@
     // onAuthStateChanged fires on EVERY token refresh — use appInitialised flag
     // so full init (cloud load + listener attach) only runs ONCE per page load
     var appInitialised = false;
+    const ALLOWED_EMAILS = [
+      'yatin@halflightcoffee.com',
+      'sameer@halflightcoffee.com'
+    ];
+
     auth.onAuthStateChanged(async user => {
-      const overlay = document.getElementById('signInOverlay');
+      const overlay  = document.getElementById('signInOverlay');
+      const errEl    = document.getElementById('signInError');
       if (!user) {
         overlay.style.display = 'flex';
         return;
       }
+
+      // Email allowlist — sign out anyone not on the list
+      if (!ALLOWED_EMAILS.includes(user.email)) {
+        await auth.signOut();
+        overlay.style.display = 'flex';
+        if (errEl) {
+          errEl.textContent = 'Access denied. This app is for Half Light Coffee team only. (' + user.email + ')';
+          errEl.style.display = 'block';
+        }
+        return;
+      }
+
       if (appInitialised) return;   // token refresh — app already running, do nothing
       appInitialised = true;
 
