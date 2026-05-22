@@ -2393,8 +2393,9 @@
         const producer   = producers.find(p => p.id === sku.producerId);
         const entries    = cropEntries.filter(e => e.skuId === sku.id)
                             .sort((a,b) => (a.cropYear+a.cropMonth).localeCompare(b.cropYear+b.cropMonth));
-        const entryCount = entries.length;
-        const canAdd     = sku.status === 'live' || sku.status === 'active';
+        const entryCount    = entries.length;
+        const displayStatus = sku.status === 'active' ? 'live' : sku.status;
+        const canAdd        = displayStatus === 'live';
 
         // Build inline entries sub-table (hidden by default)
         const entryRows = entries.map(e => {
@@ -2446,7 +2447,7 @@
               ${entryCount} entr${entryCount === 1 ? 'y' : 'ies'} ▾
             </button>
           </td>
-          <td><span class="status-badge status-${sku.status}">${sku.status}</span></td>
+          <td><span class="status-badge status-${displayStatus}">${displayStatus}</span></td>
           <td>
             <button class="action-btn" onclick="editSku('${sku.id}')">Edit</button>
             <button class="action-btn action-btn-danger" onclick="deleteSku('${sku.id}')">Delete</button>
@@ -2525,7 +2526,7 @@
 
       liveProducers.forEach(function(p) {
         const pSkus = skus.filter(function(s) {
-          return s.producerId === p.id && (s.status === 'live' || s.status === 'active');
+          return s.producerId === p.id && (s.status === 'live' || s.status === 'active'); // 'active' treated as legacy alias for 'live'
         }).sort(function(a, b) { return a.name.localeCompare(b.name); });
 
         pSkus.forEach(function(sku) {
@@ -2590,7 +2591,7 @@
       const placeholder = '<option value="">— Select a crop —</option>';
       let opts = placeholder;
       liveProducers.forEach(p => {
-        const pSkus = skus.filter(s => s.producerId === p.id && (s.status === 'live' || s.status === 'active'))
+        const pSkus = skus.filter(s => s.producerId === p.id && (s.status === 'live' || s.status === 'active')) // 'active' is legacy alias for 'live'
                           .sort((a, b) => a.name.localeCompare(b.name));
         pSkus.forEach(sku => {
           const entries = cropEntries
