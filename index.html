@@ -1275,9 +1275,9 @@
               </select>
             </div>
             <div>
-              <label style="margin-bottom:0.35rem;">SKU Name <span style="font-weight:400;color:var(--text-tertiary);">— optional filter</span></label>
+              <label style="margin-bottom:0.35rem;">Coffee SKU <span style="font-weight:400;color:var(--text-tertiary);">— for base &amp; release price cards</span></label>
               <select id="ptSkuNameFilter" style="width:100%;">
-                <option value="">All SKUs</option>
+                <option value="">— Select a SKU —</option>
               </select>
             </div>
           </div>
@@ -1292,23 +1292,30 @@
         </div>
 
         <div id="ptStats" style="display:none;margin-top:1rem;">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;">
-            <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Earliest Base Price</div>
-              <div id="ptStatFirst" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
+          <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:0.75rem;align-items:start;">
+
+            <!-- Latest SKU Base Price -->
+            <div class="card" style="padding:1rem;">
+              <div style="font-size:0.72rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Latest SKU Base Price</div>
+              <div id="ptStatBase" style="font-size:1.4rem;font-weight:700;color:var(--accent-green);">—</div>
+              <div id="ptStatBaseDate" style="font-size:0.8rem;color:var(--text-tertiary);margin-top:0.25rem;"></div>
+              <div id="ptStatBaseSku" style="font-size:0.75rem;color:var(--text-tertiary);margin-top:0.15rem;font-style:italic;"></div>
             </div>
-            <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Latest Base Price</div>
-              <div id="ptStatLatest" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
+
+            <!-- Latest Green Varietal Prices -->
+            <div class="card" style="padding:1rem;">
+              <div style="font-size:0.72rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem;">Latest Green Varietal Bought Prices</div>
+              <div id="ptStatVarietals" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
             </div>
-            <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">Latest Final Release</div>
-              <div id="ptStatFinal" style="font-size:1.1rem;font-weight:700;color:var(--accent-coffee);">—</div>
+
+            <!-- Latest Final Release Price -->
+            <div class="card" style="padding:1rem;">
+              <div style="font-size:0.72rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Latest Final Release Price</div>
+              <div id="ptStatFinal" style="font-size:1.4rem;font-weight:700;color:var(--accent-coffee);">—</div>
+              <div id="ptStatFinalDate" style="font-size:0.8rem;color:var(--text-tertiary);margin-top:0.25rem;"></div>
+              <div id="ptStatFinalSku" style="font-size:0.75rem;color:var(--text-tertiary);margin-top:0.15rem;font-style:italic;"></div>
             </div>
-            <div class="card" style="text-align:center;padding:0.875rem;">
-              <div style="font-size:0.75rem;color:var(--text-tertiary);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;">SKUs Tracked</div>
-              <div id="ptStatCount" style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">—</div>
-            </div>
+
           </div>
         </div>
       </div>
@@ -3497,95 +3504,115 @@
       const sel = document.getElementById('ptSkuNameFilter');
       if (!sel) return;
       const cur = sel.value;
-      // Unique SKU names under selected producer
-      const names = [...new Set(
-        skus.filter(s => !producerId || s.producerId === producerId)
-            .filter(s => cropEntries.some(e => e.skuId === s.id))
-            .map(s => s.name)
-      )].sort();
-      sel.innerHTML = '<option value="">All SKUs</option>' +
-        names.map(n => '<option value="' + n + '">' + n + '</option>').join('');
-      if (cur && names.includes(cur)) sel.value = cur;
+      // SKUs for this producer that have at least one crop entry
+      const producerSkus = skus.filter(function(s) {
+        return (!producerId || s.producerId === producerId) &&
+               cropEntries.some(function(e) { return e.skuId === s.id; });
+      });
+      sel.innerHTML = '<option value="">— Select a SKU —</option>' +
+        producerSkus.map(function(s) {
+          return '<option value="' + s.id + '">' + s.name + '</option>';
+        }).join('');
+      // Restore previous selection if still valid
+      if (cur && producerSkus.some(function(s) { return s.id === cur; })) sel.value = cur;
       renderPriceChart();
     }
 
-    function renderPriceChart() {
-      const producerId  = document.getElementById('ptProducerFilter').value;
-      const skuNameFilter = document.getElementById('ptSkuNameFilter').value;
-      const canvas      = document.getElementById('ptChart');
-      const empty       = document.getElementById('ptEmptyState');
-      const stats       = document.getElementById('ptStats');
+    // Color palette for varietal lines
+    var PT_COLORS = [
+      { border: '#2D5940', bg: 'rgba(45,89,64,0.10)' },
+      { border: '#5C3D2E', bg: 'rgba(92,61,46,0.10)' },
+      { border: '#3B5A7D', bg: 'rgba(59,90,125,0.10)' },
+      { border: '#C0694A', bg: 'rgba(192,105,74,0.10)' },
+      { border: '#7B6CA8', bg: 'rgba(123,108,168,0.10)' },
+      { border: '#6B8E6B', bg: 'rgba(107,142,107,0.10)' }
+    ];
 
-      const showEmpty = (msg) => {
+    function renderPriceChart() {
+      const producerId = document.getElementById('ptProducerFilter').value;
+      const skuId      = document.getElementById('ptSkuNameFilter').value;
+      const canvas     = document.getElementById('ptChart');
+      const empty      = document.getElementById('ptEmptyState');
+      const stats      = document.getElementById('ptStats');
+
+      function showEmpty(msg) {
         canvas.style.display = 'none';
         empty.style.display  = 'flex';
         empty.querySelector('span:last-child').textContent = msg;
         stats.style.display  = 'none';
         if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
-      };
+      }
 
       if (!producerId) { showEmpty('Select a producer to see their price trends'); return; }
 
-      // Get SKUs for this producer (optionally filtered by name)
-      const producerSkus = skus.filter(s =>
-        s.producerId === producerId &&
-        (!skuNameFilter || s.name === skuNameFilter)
-      );
-
-      // Gather all crop entries for those SKUs, sorted chronologically
-      let points = [];
-      producerSkus.forEach(sku => {
-        cropEntries
-          .filter(e => e.skuId === sku.id)
-          .forEach(e => points.push({ ...e, skuName: sku.name }));
+      // ── Green Varietal datasets ─────────────────────────────────────────
+      const producerVarietals = greenVarietals.filter(function(gv) {
+        return gv.producerId === producerId;
       });
-      points.sort((a, b) => (a.cropYear + a.cropMonth).localeCompare(b.cropYear + b.cropMonth));
 
-      if (points.length === 0) { showEmpty('No crop entries found. Add entries under the SKUs in Coffee SKUs tab.'); return; }
+      // All price entries for this producer's varietals
+      const allPriceEntries = greenVarietalPrices.filter(function(p) {
+        return producerVarietals.some(function(gv) { return gv.id === p.varietalId; });
+      });
+
+      if (allPriceEntries.length === 0) {
+        showEmpty('No price entries found. Add price entries in the Green Varietals tab.');
+        return;
+      }
+
+      // Build a unified sorted date axis (YYYYMM keys)
+      var dateKeys = [];
+      var seen = {};
+      allPriceEntries.forEach(function(p) {
+        var k = String(p.year).padStart(4,'0') + String(p.month).padStart(2,'0');
+        if (!seen[k]) { seen[k] = true; dateKeys.push(k); }
+      });
+      dateKeys.sort(); // chronological ascending
+
+      // Human-readable labels: "MM/YYYY"
+      var labels = dateKeys.map(function(k) { return k.slice(4) + '/' + k.slice(0,4); });
+
+      // One dataset per varietal
+      var datasets = producerVarietals.map(function(gv, idx) {
+        var color = PT_COLORS[idx % PT_COLORS.length];
+        var entries = greenVarietalPrices.filter(function(p) { return p.varietalId === gv.id; });
+        var data = dateKeys.map(function(dk) {
+          var entry = entries.find(function(p) {
+            return String(p.year).padStart(4,'0') + String(p.month).padStart(2,'0') === dk;
+          });
+          return entry ? parseFloat(entry.boughtPrice) : null;
+        });
+        return {
+          label: gv.name,
+          data: data,
+          borderColor: color.border,
+          backgroundColor: color.bg,
+          pointBackgroundColor: color.border,
+          pointRadius: 6,
+          pointHoverRadius: 9,
+          tension: 0.3,
+          fill: false,
+          spanGaps: true
+        };
+      }).filter(function(ds) {
+        // Only include varietals that have at least one price entry
+        return ds.data.some(function(v) { return v !== null; });
+      });
+
+      if (datasets.length === 0) {
+        showEmpty('No price entries found for this producer\'s varietals. Add entries in Green Varietals tab.');
+        return;
+      }
 
       empty.style.display  = 'none';
       canvas.style.display = 'block';
-      stats.style.display  = 'grid';
-
-      const labels      = points.map(p => p.skuName + ' (' + p.cropMonth + '/' + p.cropYear + ')');
-      const basePrices  = points.map(p => p.baseGreenPrice    ? parseFloat(p.baseGreenPrice)    : null);
-      const finalPrices = points.map(p => p.finalReleasePrice ? parseFloat(p.finalReleasePrice) : null);
+      stats.style.display  = 'block';
 
       if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
-
-      const ctx = canvas.getContext('2d');
+      var ctx = canvas.getContext('2d');
       ptChartInstance = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Base Green Price (₹/kg)',
-              data: basePrices,
-              borderColor: '#2D5940',
-              backgroundColor: 'rgba(45,89,64,0.08)',
-              pointBackgroundColor: '#2D5940',
-              pointRadius: 6,
-              pointHoverRadius: 8,
-              tension: 0.3,
-              fill: true,
-              spanGaps: true
-            },
-            {
-              label: 'Final Release Price (₹/kg)',
-              data: finalPrices,
-              borderColor: '#6B3F1F',
-              backgroundColor: 'rgba(107,63,31,0.06)',
-              pointBackgroundColor: '#6B3F1F',
-              pointRadius: 6,
-              pointHoverRadius: 8,
-              tension: 0.3,
-              fill: false,
-              borderDash: [6, 3],
-              spanGaps: false   // gap where not yet set
-            }
-          ]
-        },
+        data: { labels: labels, datasets: datasets },
         options: {
           responsive: true,
           interaction: { mode: 'index', intersect: false },
@@ -3594,37 +3621,126 @@
               position: 'top',
               labels: { font: { family: 'DM Sans, sans-serif', size: 12 }, padding: 16 }
             },
+            title: {
+              display: true,
+              text: 'Green Coffee Bought Prices — ' + (producers.find(function(p) { return p.id === producerId; }) || {}).name,
+              font: { family: 'DM Sans, sans-serif', size: 13, weight: '600' },
+              color: '#1A1816',
+              padding: { bottom: 12 }
+            },
             tooltip: {
               callbacks: {
-                label: c => c.parsed.y != null
-                  ? ' ' + c.dataset.label + ': ₹' + c.parsed.y.toFixed(0) + '/kg'
-                  : ' ' + c.dataset.label + ': not set'
+                label: function(c) {
+                  return c.parsed.y != null
+                    ? ' ' + c.dataset.label + ': ₹' + c.parsed.y.toFixed(0) + '/kg'
+                    : ' ' + c.dataset.label + ': no entry';
+                }
               }
             }
           },
           scales: {
             x: {
               grid: { color: 'rgba(0,0,0,0.05)' },
-              ticks: { font: { family: 'DM Sans, sans-serif', size: 11 }, maxRotation: 40 }
+              ticks: { font: { family: 'DM Sans, sans-serif', size: 11 }, maxRotation: 45 }
             },
             y: {
               grid: { color: 'rgba(0,0,0,0.05)' },
               ticks: {
                 font: { family: 'DM Sans, sans-serif', size: 11 },
-                callback: v => '₹' + v.toFixed(0)
+                callback: function(v) { return '₹' + v.toFixed(0); }
               }
             }
           }
         }
       });
 
-      // Stats
-      const validBase  = basePrices.filter(v => v != null);
-      const validFinal = finalPrices.filter(v => v != null);
-      document.getElementById('ptStatFirst').textContent  = validBase.length  ? '₹' + validBase[0].toFixed(0) + '/kg'              : '—';
-      document.getElementById('ptStatLatest').textContent = validBase.length  ? '₹' + validBase[validBase.length-1].toFixed(0) + '/kg' : '—';
-      document.getElementById('ptStatFinal').textContent  = validFinal.length ? '₹' + validFinal[validFinal.length-1].toFixed(0) + '/kg' : 'Not set';
-      document.getElementById('ptStatCount').textContent  = points.length;
+      // ── Stat cards ─────────────────────────────────────────────────────
+
+      // Card 1: Latest SKU Base Price
+      var elBase     = document.getElementById('ptStatBase');
+      var elBaseDate = document.getElementById('ptStatBaseDate');
+      var elBaseSku  = document.getElementById('ptStatBaseSku');
+      if (skuId) {
+        var skuEntries = cropEntries.filter(function(e) { return e.skuId === skuId; })
+          .sort(function(a, b) {
+            return (String(b.cropYear) + String(b.cropMonth)).localeCompare(String(a.cropYear) + String(a.cropMonth));
+          });
+        var latestBase = skuEntries.find(function(e) { return e.baseGreenPrice; });
+        var selectedSku = skus.find(function(s) { return s.id === skuId; });
+        if (latestBase) {
+          elBase.textContent     = '₹' + parseFloat(latestBase.baseGreenPrice).toFixed(0) + '/kg';
+          elBaseDate.textContent = latestBase.cropMonth + '/' + latestBase.cropYear;
+          elBaseSku.textContent  = selectedSku ? selectedSku.name : '';
+        } else {
+          elBase.textContent     = '—';
+          elBaseDate.textContent = 'No crop entries yet';
+          elBaseSku.textContent  = selectedSku ? selectedSku.name : '';
+        }
+      } else {
+        elBase.textContent     = '—';
+        elBaseDate.textContent = '';
+        elBaseSku.textContent  = 'Select a SKU above';
+      }
+
+      // Card 2: Latest Green Varietal Prices (all varietals for this producer)
+      var elVarietals = document.getElementById('ptStatVarietals');
+      if (producerVarietals.length === 0) {
+        elVarietals.innerHTML =
+          '<div style="color:var(--text-tertiary);font-size:0.85rem;font-style:italic;">No varietals added yet.</div>';
+      } else {
+        elVarietals.innerHTML = producerVarietals.map(function(gv, idx) {
+          var color  = PT_COLORS[idx % PT_COLORS.length].border;
+          var prices = greenVarietalPrices
+            .filter(function(p) { return p.varietalId === gv.id; })
+            .sort(function(a, b) {
+              return (String(b.year).padStart(4,'0') + String(b.month).padStart(2,'0'))
+                .localeCompare(String(a.year).padStart(4,'0') + String(a.month).padStart(2,'0'));
+            });
+          var latest = prices[0];
+          return '<div style="display:flex;align-items:center;justify-content:space-between;' +
+                   'padding:0.45rem 0.6rem;border-radius:6px;background:var(--bg-tertiary);">' +
+            '<div style="display:flex;align-items:center;gap:0.5rem;">' +
+              '<span style="width:10px;height:10px;border-radius:50%;background:' + color + ';flex-shrink:0;display:inline-block;"></span>' +
+              '<span style="font-weight:600;font-size:0.875rem;">' + gv.name + '</span>' +
+            '</div>' +
+            (latest
+              ? '<div style="text-align:right;">' +
+                  '<span style="font-weight:700;font-size:0.95rem;color:' + color + ';">₹' + parseFloat(latest.boughtPrice).toFixed(0) + '/kg</span>' +
+                  '<span style="font-size:0.75rem;color:var(--text-tertiary);margin-left:0.4rem;">' +
+                    String(latest.month).padStart(2,'0') + '/' + latest.year +
+                  '</span>' +
+                '</div>'
+              : '<span style="font-size:0.8rem;color:var(--text-tertiary);font-style:italic;">no entries</span>'
+            ) +
+          '</div>';
+        }).join('');
+      }
+
+      // Card 3: Latest Final Release Price
+      var elFinal     = document.getElementById('ptStatFinal');
+      var elFinalDate = document.getElementById('ptStatFinalDate');
+      var elFinalSku  = document.getElementById('ptStatFinalSku');
+      if (skuId) {
+        var skuEntries2 = cropEntries.filter(function(e) { return e.skuId === skuId; })
+          .sort(function(a, b) {
+            return (String(b.cropYear) + String(b.cropMonth)).localeCompare(String(a.cropYear) + String(a.cropMonth));
+          });
+        var latestFinal = skuEntries2.find(function(e) { return e.finalReleasePrice; });
+        var selectedSku2 = skus.find(function(s) { return s.id === skuId; });
+        if (latestFinal) {
+          elFinal.textContent     = '₹' + parseFloat(latestFinal.finalReleasePrice).toFixed(0) + '/kg';
+          elFinalDate.textContent = latestFinal.cropMonth + '/' + latestFinal.cropYear;
+          elFinalSku.textContent  = selectedSku2 ? selectedSku2.name : '';
+        } else {
+          elFinal.textContent     = 'Not set';
+          elFinalDate.textContent = 'No final price recorded';
+          elFinalSku.textContent  = selectedSku2 ? selectedSku2.name : '';
+        }
+      } else {
+        elFinal.textContent     = '—';
+        elFinalDate.textContent = '';
+        elFinalSku.textContent  = 'Select a SKU above';
+      }
     }
 
     // ============================================
