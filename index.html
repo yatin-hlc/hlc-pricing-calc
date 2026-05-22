@@ -3049,13 +3049,14 @@
               });
             const priceCount = prices.length;
 
-            const priceRows = prices.map(function(p) {
+            const priceRows = prices.map(function(p, pi) {
               var shipDate = (p.shipmentMonth && p.shipmentYear)
                 ? String(p.shipmentMonth).padStart(2,'0') + '/' + p.shipmentYear
                 : '—';
               var qtyTxt   = p.quantityKg != null ? p.quantityKg + ' kg' : '—';
               var sacksTxt = p.sacks      != null ? p.sacks              : '—';
               return '<tr style="border-bottom:1px solid var(--border-light);">' +
+                '<td style="padding:0.65rem 1rem;color:var(--text-tertiary);font-size:0.85rem;width:40px;">' + (pi + 1) + '</td>' +
                 '<td style="padding:0.65rem 1rem;min-width:90px;">' +
                   '<span style="display:inline-block;background:#F0FDF4;color:var(--accent-green);border:1px solid #BBF7D0;' +
                     'border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">' +
@@ -3066,7 +3067,7 @@
                 '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">₹' +
                   parseFloat(p.boughtPrice).toFixed(0) + '/kg' +
                 '</td>' +
-                '<td style="padding:0.65rem 1rem;color:var(--text-secondary);font-size:0.875rem;">' + qtyTxt + '</td>' +
+                '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">' + qtyTxt + '</td>' +
                 '<td style="padding:0.65rem 1rem;color:var(--text-secondary);font-size:0.875rem;">' + sacksTxt + '</td>' +
                 '<td style="padding:0.65rem 1rem;text-align:right;">' +
                   '<button class="action-btn" style="font-size:0.8rem;" onclick="editGvPrice(\'' + p.id + '\')">Edit</button>' +
@@ -3078,6 +3079,7 @@
             const subTableContent = prices.length
               ? '<table style="width:100%;border-collapse:collapse;background:var(--bg-tertiary);border-radius:6px;overflow:hidden;border:1px solid var(--border-light);">' +
                   '<thead style="background:var(--bg-primary);"><tr>' +
+                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:40px;">S.No.</th>' +
                     '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;min-width:90px;">Invoice Date</th>' +
                     '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;min-width:90px;">Shipment Date</th>' +
                     '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Bought Price</th>' +
