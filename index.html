@@ -1214,16 +1214,7 @@
             <span class="search-icon">🔍</span>
             <input type="text" id="gvSearch" placeholder="Search by producer or varietal name…">
           </div>
-          <div id="gvTableContainer">
-            <table id="gvTable">
-              <thead>
-                <tr>
-                  <th>S.No.</th><th>Producer</th><th>Varietal Name</th><th>Price Entries</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="gvTableBody"></tbody>
-            </table>
-          </div>
+          <div id="gvTableContainer"></div>
         </div>
       </div>
 
@@ -2781,90 +2772,177 @@
     }
 
     function renderGvTable() {
-      const tbody      = document.getElementById('gvTableBody');
-      if (!tbody) return;
+      const container  = document.getElementById('gvTableContainer');
+      if (!container) return;
       const searchTerm = (document.getElementById('gvSearch') ? document.getElementById('gvSearch').value : '').toLowerCase();
 
-      const filtered = greenVarietals.filter(gv => {
-        const producer = producers.find(p => p.id === gv.producerId);
-        return (gv.name || '').toLowerCase().includes(searchTerm) ||
-          (producer && producer.name.toLowerCase().includes(searchTerm));
-      });
+      // Show all non-archived producers as sections; archived producers are hidden
+      const activeProducers = producers.filter(function(p) { return p.status !== 'archived'; });
 
-      if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">🌿</div>' +
-          '<div class="empty-state-title">No Green Varietals Found</div>' +
-          '<div class="empty-state-text">' + (searchTerm ? 'Try a different search' : 'Add your first green coffee varietal') + '</div></div></td></tr>';
+      if (activeProducers.length === 0) {
+        container.innerHTML =
+          '<div class="empty-state"><div class="empty-state-icon">🌿</div>' +
+          '<div class="empty-state-title">No Producers Yet</div>' +
+          '<div class="empty-state-text">Add a producer first, then you can add green varietals under them.</div></div>';
         return;
       }
 
-      tbody.innerHTML = filtered.map(function(gv, i) {
-        const producer   = producers.find(p => p.id === gv.producerId);
-        const prices     = greenVarietalPrices.filter(p => p.varietalId === gv.id)
-                            .sort(function(a, b) { return (b.year + b.month).localeCompare(a.year + a.month); });
-        const priceCount = prices.length;
+      // Filter varietals by search term
+      const filteredVarietals = greenVarietals.filter(function(gv) {
+        if (!searchTerm) return true;
+        const prod = producers.find(function(p) { return p.id === gv.producerId; });
+        return (gv.name || '').toLowerCase().includes(searchTerm) ||
+          (prod && prod.name.toLowerCase().includes(searchTerm));
+      });
 
-        const priceRows = prices.map(function(p) {
-          return '<tr style="border-bottom:1px solid var(--border-light);">' +
-            '<td style="padding:0.65rem 1rem;">' +
-              '<span style="display:inline-block;background:#F0FDF4;color:var(--accent-green);border:1px solid #BBF7D0;border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">' +
-              p.month + '/' + p.year + '</span></td>' +
-            '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">₹' + parseFloat(p.boughtPrice).toFixed(0) + '/kg</td>' +
-            '<td style="padding:0.65rem 1rem;text-align:right;">' +
-              '<button class="action-btn" style="font-size:0.8rem;" onclick="editGvPrice(\'' + p.id + '\')">Edit</button>' +
-              '<button class="action-btn action-btn-danger" style="font-size:0.8rem;" onclick="deleteGvPrice(\'' + p.id + '\')">Delete</button>' +
-            '</td></tr>';
-        }).join('');
+      var html = '';
+      var anySection = false;
 
-        const subTable =
-          '<tr id="gvPrices_' + gv.id + '" style="display:none;">' +
-            '<td colspan="5" style="padding:0;border-left:3px solid var(--accent-green);border-bottom:2px solid var(--accent-green);">' +
-              '<div style="background:var(--bg-primary);padding:1rem 1.25rem;">' +
-                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;">' +
-                  '<div style="display:flex;align-items:center;gap:0.5rem;">' +
-                    '<span style="font-size:0.95rem;font-weight:700;color:var(--accent-green);">🌿 ' + gv.name + '</span>' +
-                    '<span style="font-size:0.75rem;color:var(--text-tertiary);font-weight:400;">— price entries</span>' +
+      activeProducers.forEach(function(producer) {
+        // When searching, only show producer sections that have matching varietals
+        const pVarietals = filteredVarietals.filter(function(gv) { return gv.producerId === producer.id; });
+        if (searchTerm && pVarietals.length === 0) return;
+        anySection = true;
+
+        // ── Producer section header ──
+        html +=
+          '<div style="margin-bottom:1.75rem;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;' +
+            'background:var(--accent-green-light);border-left:4px solid var(--accent-green);' +
+            'border-radius:0 8px 8px 0;padding:0.75rem 1rem;margin-bottom:0;">' +
+            '<span style="font-weight:700;font-size:1rem;color:var(--accent-green);">🌿 ' + producer.name + '</span>' +
+            '<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-green);border-radius:6px;' +
+              'padding:0.3rem 0.875rem;cursor:pointer;color:var(--accent-green);font-size:0.8rem;font-weight:600;' +
+              'font-family:inherit;transition:all 0.15s;" ' +
+              'onclick="openGvModal(null,\'' + producer.id + '\')" ' +
+              'onmouseover="this.style.background=\'var(--accent-green)\';this.style.color=\'#fff\';" ' +
+              'onmouseout="this.style.background=\'var(--bg-secondary)\';this.style.color=\'var(--accent-green)\';">' +
+              '+ Add Varietal' +
+            '</button>' +
+          '</div>';
+
+        if (pVarietals.length === 0) {
+          // No varietals yet for this producer
+          html +=
+            '<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-top:none;' +
+              'border-radius:0 0 8px 8px;padding:1.25rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">' +
+              'No varietals yet — click <strong style="color:var(--accent-green);">+ Add Varietal</strong> above.' +
+            '</div>';
+        } else {
+          // Varietals table for this producer
+          html +=
+            '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);' +
+              'border:1px solid var(--border-light);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">' +
+            '<thead>' +
+              '<tr style="background:var(--bg-tertiary);">' +
+                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:60px;">S.No.</th>' +
+                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Varietal Name</th>' +
+                '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Price Entries</th>' +
+                '<th style="padding:0.6rem 1rem;width:120px;"></th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>';
+
+          pVarietals.forEach(function(gv, idx) {
+            const prices = greenVarietalPrices
+              .filter(function(p) { return p.varietalId === gv.id; })
+              .sort(function(a, b) {
+                // Latest first — sort descending by year then month
+                var aKey = String(a.year).padStart(4,'0') + String(a.month).padStart(2,'0');
+                var bKey = String(b.year).padStart(4,'0') + String(b.month).padStart(2,'0');
+                return bKey.localeCompare(aKey);
+              });
+            const priceCount = prices.length;
+
+            const priceRows = prices.map(function(p) {
+              return '<tr style="border-bottom:1px solid var(--border-light);">' +
+                '<td style="padding:0.65rem 1rem;">' +
+                  '<span style="display:inline-block;background:#F0FDF4;color:var(--accent-green);border:1px solid #BBF7D0;' +
+                    'border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">' +
+                    String(p.month).padStart(2,'0') + '/' + p.year +
+                  '</span>' +
+                '</td>' +
+                '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">₹' +
+                  parseFloat(p.boughtPrice).toFixed(0) + '/kg' +
+                '</td>' +
+                '<td style="padding:0.65rem 1rem;text-align:right;">' +
+                  '<button class="action-btn" style="font-size:0.8rem;" onclick="editGvPrice(\'' + p.id + '\')">Edit</button>' +
+                  '<button class="action-btn action-btn-danger" style="font-size:0.8rem;" onclick="deleteGvPrice(\'' + p.id + '\')">Delete</button>' +
+                '</td>' +
+              '</tr>';
+            }).join('');
+
+            const subTableContent = prices.length
+              ? '<table style="width:100%;border-collapse:collapse;background:var(--bg-tertiary);border-radius:6px;overflow:hidden;border:1px solid var(--border-light);">' +
+                  '<thead style="background:var(--bg-primary);"><tr>' +
+                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Month/Year</th>' +
+                    '<th style="text-align:left;padding:0.45rem 1rem;font-size:0.68rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Bought Price</th>' +
+                    '<th style="padding:0.45rem 1rem;"></th>' +
+                  '</tr></thead>' +
+                  '<tbody>' + priceRows + '</tbody>' +
+                '</table>'
+              : '<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-radius:6px;' +
+                  'padding:1rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">' +
+                  'No price entries yet — click <strong style="color:var(--accent-green);">+ Add Price Entry</strong> to start tracking.' +
+                '</div>';
+
+            const subRow =
+              '<tr id="gvPrices_' + gv.id + '" style="display:none;">' +
+                '<td colspan="4" style="padding:0;border-left:3px solid var(--accent-green);border-bottom:2px solid var(--accent-green);">' +
+                  '<div style="background:var(--bg-primary);padding:1rem 1.25rem;">' +
+                    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">' +
+                      '<span style="font-size:0.9rem;font-weight:700;color:var(--accent-green);">' + gv.name + ' — price history</span>' +
+                      '<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-green);border-radius:6px;' +
+                        'padding:0.3rem 0.8rem;cursor:pointer;color:var(--accent-green);font-size:0.78rem;font-weight:600;' +
+                        'font-family:inherit;transition:all 0.15s;" ' +
+                        'onclick="openGvPriceModal(\'' + gv.id + '\')" ' +
+                        'onmouseover="this.style.background=\'var(--accent-green)\';this.style.color=\'#fff\';" ' +
+                        'onmouseout="this.style.background=\'var(--bg-secondary)\';this.style.color=\'var(--accent-green)\';">' +
+                        '+ Add Price Entry' +
+                      '</button>' +
+                    '</div>' +
+                    subTableContent +
                   '</div>' +
-                  '<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-green);border-radius:6px;padding:0.35rem 0.875rem;cursor:pointer;color:var(--accent-green);font-size:0.8rem;font-weight:600;font-family:inherit;box-shadow:2px 2px 0px var(--accent-green);transition:all 0.15s;" ' +
-                    'onclick="openGvPriceModal(\'' + gv.id + '\')" ' +
-                    'onmouseover="this.style.background=\'var(--accent-green)\';this.style.color=\'#fff\';this.style.boxShadow=\'none\';" ' +
-                    'onmouseout="this.style.background=\'var(--bg-secondary)\';this.style.color=\'var(--accent-green)\';this.style.boxShadow=\'2px 2px 0px var(--accent-green)\';">+ Add Price Entry</button>' +
-                '</div>' +
-                (prices.length
-                  ? '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);border-radius:8px;overflow:hidden;border:1px solid var(--border-light);">' +
-                    '<thead style="background:var(--bg-tertiary);"><tr>' +
-                    '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Month/Year</th>' +
-                    '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Bought Price</th>' +
-                    '<th style="padding:0.5rem 1rem;"></th>' +
-                    '</tr></thead><tbody>' + priceRows + '</tbody></table>'
-                  : '<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-radius:8px;padding:1.25rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">No price entries yet — click <strong style="color:var(--accent-green);">+ Add Price Entry</strong> to start tracking.</div>'
-                ) +
-              '</div>' +
-            '</td>' +
-          '</tr>';
+                '</td>' +
+              '</tr>';
 
-        const mainRow =
-          '<tr style="border-bottom:1px solid var(--border-light);">' +
-            '<td>' + (i + 1) + '</td>' +
-            '<td>' + (producer ? producer.name : '<span style="color:var(--text-tertiary)">—</span>') + '</td>' +
-            '<td><strong>' + gv.name + '</strong></td>' +
-            '<td>' +
-              '<button style="background:' + (priceCount > 0 ? 'var(--accent-green)' : 'transparent') + ';' +
-                'color:' + (priceCount > 0 ? '#fff' : 'var(--text-tertiary)') + ';' +
-                'border:1.5px solid ' + (priceCount > 0 ? 'var(--accent-green)' : 'var(--border-medium)') + ';' +
-                'border-radius:20px;padding:0.25rem 0.75rem;font-size:0.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;" ' +
-                'onclick="toggleGvPrices(\'' + gv.id + '\')">' +
-                priceCount + ' entr' + (priceCount === 1 ? 'y' : 'ies') + ' ▾' +
-              '</button>' +
-            '</td>' +
-            '<td>' +
-              '<button class="action-btn" onclick="editGv(\'' + gv.id + '\')">Edit</button>' +
-              '<button class="action-btn action-btn-danger" onclick="deleteGv(\'' + gv.id + '\')">Delete</button>' +
-            '</td>' +
-          '</tr>';
+            const mainRow =
+              '<tr style="border-bottom:1px solid var(--border-light);">' +
+                '<td style="padding:0.75rem 1rem;color:var(--text-tertiary);font-size:0.85rem;">' + (idx + 1) + '</td>' +
+                '<td style="padding:0.75rem 1rem;"><strong>' + gv.name + '</strong></td>' +
+                '<td style="padding:0.75rem 1rem;">' +
+                  '<button style="background:' + (priceCount > 0 ? 'var(--accent-green)' : 'transparent') + ';' +
+                    'color:' + (priceCount > 0 ? '#fff' : 'var(--text-tertiary)') + ';' +
+                    'border:1.5px solid ' + (priceCount > 0 ? 'var(--accent-green)' : 'var(--border-medium)') + ';' +
+                    'border-radius:20px;padding:0.25rem 0.75rem;font-size:0.78rem;font-weight:600;' +
+                    'font-family:inherit;cursor:pointer;transition:all 0.2s;" ' +
+                    'onclick="toggleGvPrices(\'' + gv.id + '\')">' +
+                    priceCount + ' entr' + (priceCount === 1 ? 'y' : 'ies') + ' ▾' +
+                  '</button>' +
+                '</td>' +
+                '<td style="padding:0.75rem 1rem;text-align:right;">' +
+                  '<button class="action-btn" onclick="editGv(\'' + gv.id + '\')">Edit</button>' +
+                  '<button class="action-btn action-btn-danger" onclick="deleteGv(\'' + gv.id + '\')">Delete</button>' +
+                '</td>' +
+              '</tr>';
 
-        return mainRow + subTable;
-      }).join('');
+            html += mainRow + subRow;
+          });
+
+          html += '</tbody></table>';
+        }
+
+        html += '</div>'; // end producer section
+      });
+
+      if (!anySection) {
+        html =
+          '<div class="empty-state"><div class="empty-state-icon">🔍</div>' +
+          '<div class="empty-state-title">No Varietals Found</div>' +
+          '<div class="empty-state-text">Try a different search term.</div></div>';
+      }
+
+      container.innerHTML = html;
     }
 
     window.toggleGvPrices = function(gvId) {
@@ -2873,15 +2951,16 @@
       row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
     };
 
-    function openGvModal(gv) {
+    function openGvModal(gv, producerId) {
       editingGv = gv || null;
       populateGvProducerDropdown();
       document.getElementById('gvModalTitle').textContent = gv ? 'Edit Green Varietal' : 'Add Green Varietal';
-      document.getElementById('gvProducer').value = gv ? (gv.producerId || '') : '';
+      document.getElementById('gvProducer').value = gv ? (gv.producerId || '') : (producerId || '');
       document.getElementById('gvName').value     = gv ? (gv.name       || '') : '';
       document.getElementById('gvModal').classList.add('active');
       setTimeout(function() { document.getElementById('gvName').focus(); }, 50);
     }
+    window.openGvModal = openGvModal;
 
     function closeGvModal() {
       document.getElementById('gvModal').classList.remove('active');
@@ -3886,6 +3965,7 @@
         producers = data ? Object.values(data) : [];
         renderProducerTable();
         updateSkuSelect();
+        renderGvTable();
       });
       // SKUs + crop entries
       db.ref('hlc/skus').on('value', snap => {
