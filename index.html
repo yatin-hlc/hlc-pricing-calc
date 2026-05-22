@@ -1185,16 +1185,7 @@
             <span class="search-icon">🔍</span>
             <input type="text" id="skuSearch" placeholder="Search by producer, name or crop year…">
           </div>
-          <div id="skuTableContainer">
-            <table id="skuTable">
-              <thead>
-                <tr>
-                  <th>S.No.</th><th>Producer</th><th>SKU Name</th><th>Crop Entries</th><th>Status</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="skuTableBody"></tbody>
-            </table>
-          </div>
+          <div id="skuTableContainer"></div>
         </div>
       </div>
 
@@ -2375,87 +2366,208 @@
     // ── Coffee SKUs ──
 
     function renderSkuTable() {
-      const tbody      = document.getElementById('skuTableBody');
-      const searchTerm = document.getElementById('skuSearch').value.toLowerCase();
+      var container  = document.getElementById('skuTableContainer');
+      if (!container) return;
+      var searchTerm = document.getElementById('skuSearch').value.toLowerCase();
 
-      const filtered = skus.filter(s => {
-        const producer = producers.find(p => p.id === s.producerId);
-        return s.name.toLowerCase().includes(searchTerm) ||
-          (producer && producer.name.toLowerCase().includes(searchTerm));
-      });
+      var activeProducers = producers.filter(function(p) { return p.status !== 'archived'; });
 
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">☕</div><div class="empty-state-title">No Coffee SKUs Found</div><div class="empty-state-text">${searchTerm ? 'Try a different search' : 'Add your first Coffee SKU'}</div></div></td></tr>`;
+      if (activeProducers.length === 0 && skus.length === 0) {
+        container.innerHTML =
+          '<div class="empty-state"><div class="empty-state-icon">☕</div>' +
+          '<div class="empty-state-title">No Coffee SKUs Yet</div>' +
+          '<div class="empty-state-text">Add a producer first, then add your Coffee SKUs.</div></div>';
         return;
       }
 
-      tbody.innerHTML = filtered.map((sku, i) => {
-        const producer   = producers.find(p => p.id === sku.producerId);
-        const entries    = cropEntries.filter(e => e.skuId === sku.id)
-                            .sort((a,b) => (a.cropYear+a.cropMonth).localeCompare(b.cropYear+b.cropMonth));
-        const entryCount    = entries.length;
-        const displayStatus = sku.status === 'active' ? 'live' : sku.status;
-        const canAdd        = displayStatus === 'live';
+      // Filter SKUs by search
+      var filteredSkus = skus.filter(function(s) {
+        if (!searchTerm) return true;
+        var prod = producers.find(function(p) { return p.id === s.producerId; });
+        return s.name.toLowerCase().includes(searchTerm) ||
+          (prod && prod.name.toLowerCase().includes(searchTerm));
+      });
 
-        // Build inline entries sub-table (hidden by default)
-        const entryRows = entries.map(e => {
-          const base  = e.baseGreenPrice    ? '₹' + parseFloat(e.baseGreenPrice).toFixed(0)    : '—';
-          const final = e.finalReleasePrice ? '₹' + parseFloat(e.finalReleasePrice).toFixed(0) : null;
-          return `<tr style="border-bottom:1px solid var(--border-light);">
-            <td style="padding:0.65rem 1rem;">
-              <span style="display:inline-block;background:#FFF7ED;color:var(--accent-coffee);border:1px solid #FED7AA;border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">${e.cropMonth}/${e.cropYear}</span>
-            </td>
-            <td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">${base}</td>
-            <td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:${final ? '#2D5940' : 'var(--text-tertiary)'};">${final || '<span style="font-weight:400;font-style:italic;font-size:0.8rem;">not set yet</span>'}</td>
-            <td style="padding:0.65rem 1rem;text-align:right;">
-              <button class="action-btn" style="font-size:0.8rem;" onclick="editCropEntry('${e.id}')">Edit</button>
-              <button class="action-btn action-btn-danger" style="font-size:0.8rem;" onclick="deleteCropEntry('${e.id}')">Delete</button>
-            </td></tr>`;
-        }).join('');
+      // Also include an "Unassigned" bucket for SKUs whose producer was deleted
+      var allProducerIds = producers.map(function(p) { return p.id; });
+      var unassigned = filteredSkus.filter(function(s) { return !allProducerIds.includes(s.producerId); });
 
-        const subTable = `
-          <tr id="skuEntries_${sku.id}" style="display:none;">
-            <td colspan="6" style="padding:0;border-left:3px solid var(--accent-coffee);border-bottom:2px solid var(--accent-coffee);">
-              <div style="background:var(--bg-primary);padding:1rem 1.25rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;">
-                  <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <span style="font-size:0.95rem;font-weight:700;color:var(--accent-coffee);">☕ ${sku.name}</span>
-                    <span style="font-size:0.75rem;color:var(--text-tertiary);font-weight:400;">— crop year entries</span>
-                  </div>
-                  ${canAdd ? `<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-coffee);border-radius:6px;padding:0.35rem 0.875rem;cursor:pointer;color:var(--accent-coffee);font-size:0.8rem;font-weight:600;font-family:inherit;box-shadow:2px 2px 0px var(--accent-coffee);transition:all 0.15s;" onclick="openCropEntryModal('${sku.id}')" onmouseover="this.style.background='var(--accent-coffee)';this.style.color='#fff';this.style.boxShadow='none';" onmouseout="this.style.background='var(--bg-secondary)';this.style.color='var(--accent-coffee)';this.style.boxShadow='2px 2px 0px var(--accent-coffee)';">+ Add Crop Entry</button>` : '<span style="font-size:0.8rem;color:var(--text-tertiary);">Set SKU to Live to add entries.</span>'}
-                </div>
-                ${entries.length ? `<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);border-radius:8px;overflow:hidden;border:1px solid var(--border-light);">
-                  <thead style="background:var(--bg-tertiary);">
-                    <tr>
-                      <th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Green Purchase Month/Year</th>
-                      <th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Base Green ₹/kg</th>
-                      <th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Final Release ₹/kg</th>
-                      <th style="padding:0.5rem 1rem;"></th>
-                    </tr>
-                  </thead><tbody>${entryRows}</tbody>
-                </table>` : `<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-radius:8px;padding:1.25rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">No crop entries yet — click <strong style="color:var(--accent-coffee);">+ Add Crop Entry</strong> to start tracking prices.</div>`}
-              </div>
-            </td>
-          </tr>`;
+      var html = '';
+      var anySection = false;
 
-        const mainRow = `<tr style="border-bottom:1px solid var(--border-light);">
-          <td>${i + 1}</td>
-          <td>${producer ? producer.name : '<span style="color:var(--text-tertiary)">—</span>'}</td>
-          <td><strong>${sku.name}</strong></td>
-          <td>
-            <button style="background:${entryCount > 0 ? 'var(--accent-coffee)' : 'transparent'};color:${entryCount > 0 ? '#fff' : 'var(--text-tertiary)'};border:1.5px solid ${entryCount > 0 ? 'var(--accent-coffee)' : 'var(--border-medium)'};border-radius:20px;padding:0.25rem 0.75rem;font-size:0.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;" onclick="toggleSkuEntries('${sku.id}')">
-              ${entryCount} entr${entryCount === 1 ? 'y' : 'ies'} ▾
-            </button>
-          </td>
-          <td><span class="status-badge status-${displayStatus}">${displayStatus}</span></td>
-          <td>
-            <button class="action-btn" onclick="editSku('${sku.id}')">Edit</button>
-            <button class="action-btn action-btn-danger" onclick="deleteSku('${sku.id}')">Delete</button>
-          </td>
-        </tr>`;
+      // ── One section per active producer ──────────────────────────────
+      activeProducers.forEach(function(producer, pIdx) {
+        var pSkus = filteredSkus.filter(function(s) { return s.producerId === producer.id; });
+        if (searchTerm && pSkus.length === 0) return;
+        anySection = true;
 
-        return mainRow + subTable;
+        html +=
+          '<div style="margin-bottom:1.75rem;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;' +
+            'background:var(--accent-amber-light);border-left:4px solid var(--accent-coffee);' +
+            'border-radius:0 8px 8px 0;padding:0.75rem 1rem;margin-bottom:0;">' +
+            '<span style="font-weight:700;font-size:1rem;color:var(--accent-coffee);">☕ ' + (pIdx + 1) + '. ' + producer.name + '</span>' +
+            '<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-coffee);border-radius:6px;' +
+              'padding:0.3rem 0.875rem;cursor:pointer;color:var(--accent-coffee);font-size:0.8rem;font-weight:600;' +
+              'font-family:inherit;transition:all 0.15s;" ' +
+              'onclick="openSkuModal(null,\'' + producer.id + '\')" ' +
+              'onmouseover="this.style.background=\'var(--accent-coffee)\';this.style.color=\'#fff\';" ' +
+              'onmouseout="this.style.background=\'var(--bg-secondary)\';this.style.color=\'var(--accent-coffee)\';">' +
+              '+ Add SKU' +
+            '</button>' +
+          '</div>';
+
+        if (pSkus.length === 0) {
+          html +=
+            '<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-top:none;' +
+              'border-radius:0 0 8px 8px;padding:1.25rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">' +
+              'No SKUs yet — click <strong style="color:var(--accent-coffee);">+ Add SKU</strong> above.' +
+            '</div>';
+        } else {
+          html +=
+            '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);' +
+              'border:1px solid var(--border-light);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">' +
+            '<thead><tr style="background:var(--bg-tertiary);">' +
+              '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:60px;">S.No.</th>' +
+              '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">SKU Name</th>' +
+              '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Crop Entries</th>' +
+              '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Status</th>' +
+              '<th style="padding:0.6rem 1rem;width:120px;"></th>' +
+            '</tr></thead><tbody>';
+
+          pSkus.forEach(function(sku, idx) {
+            html += buildSkuRows(sku, idx);
+          });
+
+          html += '</tbody></table>';
+        }
+
+        html += '</div>';
+      });
+
+      // ── Unassigned bucket (producer deleted) ─────────────────────────
+      if (unassigned.length > 0) {
+        anySection = true;
+        html +=
+          '<div style="margin-bottom:1.75rem;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;' +
+            'background:var(--bg-tertiary);border-left:4px solid var(--border-medium);' +
+            'border-radius:0 8px 8px 0;padding:0.75rem 1rem;margin-bottom:0;">' +
+            '<span style="font-weight:700;font-size:1rem;color:var(--text-secondary);">☕ Unassigned (producer removed)</span>' +
+          '</div>' +
+          '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);' +
+            'border:1px solid var(--border-light);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">' +
+          '<thead><tr style="background:var(--bg-tertiary);">' +
+            '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:60px;">S.No.</th>' +
+            '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">SKU Name</th>' +
+            '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Crop Entries</th>' +
+            '<th style="text-align:left;padding:0.6rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Status</th>' +
+            '<th style="padding:0.6rem 1rem;width:120px;"></th>' +
+          '</tr></thead><tbody>';
+
+        unassigned.forEach(function(sku, idx) {
+          html += buildSkuRows(sku, idx);
+        });
+
+        html += '</tbody></table></div>';
+      }
+
+      if (!anySection) {
+        html =
+          '<div class="empty-state"><div class="empty-state-icon">🔍</div>' +
+          '<div class="empty-state-title">No SKUs Found</div>' +
+          '<div class="empty-state-text">Try a different search term.</div></div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Build the main row + expandable crop entries sub-row for one SKU
+    function buildSkuRows(sku, idx) {
+      var entries = cropEntries.filter(function(e) { return e.skuId === sku.id; })
+        .sort(function(a, b) { return (a.cropYear + a.cropMonth).localeCompare(b.cropYear + b.cropMonth); });
+      var entryCount    = entries.length;
+      var displayStatus = sku.status === 'active' ? 'live' : sku.status;
+      var canAdd        = displayStatus === 'live';
+
+      var entryRows = entries.map(function(e) {
+        var base  = e.baseGreenPrice    ? '&#8377;' + parseFloat(e.baseGreenPrice).toFixed(0)    : '—';
+        var final = e.finalReleasePrice ? '&#8377;' + parseFloat(e.finalReleasePrice).toFixed(0) : null;
+        return '<tr style="border-bottom:1px solid var(--border-light);">' +
+          '<td style="padding:0.65rem 1rem;">' +
+            '<span style="display:inline-block;background:#FFF7ED;color:var(--accent-coffee);border:1px solid #FED7AA;' +
+              'border-radius:6px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700;letter-spacing:0.03em;">' +
+              e.cropMonth + '/' + e.cropYear +
+            '</span></td>' +
+          '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">' + base + '</td>' +
+          '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:' + (final ? '#2D5940' : 'var(--text-tertiary)') + ';">' +
+            (final || '<span style="font-weight:400;font-style:italic;font-size:0.8rem;">not set yet</span>') +
+          '</td>' +
+          '<td style="padding:0.65rem 1rem;text-align:right;">' +
+            '<button class="action-btn" style="font-size:0.8rem;" onclick="editCropEntry(\'' + e.id + '\')">Edit</button>' +
+            '<button class="action-btn action-btn-danger" style="font-size:0.8rem;" onclick="deleteCropEntry(\'' + e.id + '\')">Delete</button>' +
+          '</td></tr>';
       }).join('');
+
+      var cropEntriesContent = entries.length
+        ? '<table style="width:100%;border-collapse:collapse;background:var(--bg-secondary);border-radius:8px;overflow:hidden;border:1px solid var(--border-light);">' +
+          '<thead style="background:var(--bg-tertiary);"><tr>' +
+          '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Green Purchase Month/Year</th>' +
+          '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Base Green &#8377;/kg</th>' +
+          '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Final Release &#8377;/kg</th>' +
+          '<th style="padding:0.5rem 1rem;"></th>' +
+          '</tr></thead><tbody>' + entryRows + '</tbody></table>'
+        : '<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-radius:8px;' +
+          'padding:1.25rem;text-align:center;color:var(--text-tertiary);font-size:0.875rem;">' +
+          'No crop entries yet — click <strong style="color:var(--accent-coffee);">+ Add Crop Entry</strong> to start tracking prices.</div>';
+
+      var addCropBtn = canAdd
+        ? '<button style="background:var(--bg-secondary);border:1.5px solid var(--accent-coffee);border-radius:6px;' +
+          'padding:0.35rem 0.875rem;cursor:pointer;color:var(--accent-coffee);font-size:0.8rem;font-weight:600;' +
+          'font-family:inherit;box-shadow:2px 2px 0px var(--accent-coffee);transition:all 0.15s;" ' +
+          'onclick="openCropEntryModal(\'' + sku.id + '\')" ' +
+          'onmouseover="this.style.background=\'var(--accent-coffee)\';this.style.color=\'#fff\';this.style.boxShadow=\'none\';" ' +
+          'onmouseout="this.style.background=\'var(--bg-secondary)\';this.style.color=\'var(--accent-coffee)\';this.style.boxShadow=\'2px 2px 0px var(--accent-coffee)\';">+ Add Crop Entry</button>'
+        : '<span style="font-size:0.8rem;color:var(--text-tertiary);">Set SKU to Live to add entries.</span>';
+
+      var subRow =
+        '<tr id="skuEntries_' + sku.id + '" style="display:none;">' +
+          '<td colspan="5" style="padding:0;border-left:3px solid var(--accent-coffee);border-bottom:2px solid var(--accent-coffee);">' +
+            '<div style="background:var(--bg-primary);padding:1rem 1.25rem;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;">' +
+                '<div style="display:flex;align-items:center;gap:0.5rem;">' +
+                  '<span style="font-size:0.95rem;font-weight:700;color:var(--accent-coffee);">&#9749; ' + sku.name + '</span>' +
+                  '<span style="font-size:0.75rem;color:var(--text-tertiary);font-weight:400;">— crop entries</span>' +
+                '</div>' +
+                addCropBtn +
+              '</div>' +
+              cropEntriesContent +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+
+      var mainRow =
+        '<tr style="border-bottom:1px solid var(--border-light);">' +
+          '<td style="padding:0.75rem 1rem;color:var(--text-tertiary);font-size:0.85rem;">' + (idx + 1) + '</td>' +
+          '<td style="padding:0.75rem 1rem;"><strong>' + sku.name + '</strong></td>' +
+          '<td style="padding:0.75rem 1rem;">' +
+            '<button style="background:' + (entryCount > 0 ? 'var(--accent-coffee)' : 'transparent') + ';' +
+              'color:' + (entryCount > 0 ? '#fff' : 'var(--text-tertiary)') + ';' +
+              'border:1.5px solid ' + (entryCount > 0 ? 'var(--accent-coffee)' : 'var(--border-medium)') + ';' +
+              'border-radius:20px;padding:0.25rem 0.75rem;font-size:0.78rem;font-weight:600;' +
+              'font-family:inherit;cursor:pointer;transition:all 0.2s;" ' +
+              'onclick="toggleSkuEntries(\'' + sku.id + '\')">' +
+              entryCount + ' entr' + (entryCount === 1 ? 'y' : 'ies') + ' ▾' +
+            '</button>' +
+          '</td>' +
+          '<td style="padding:0.75rem 1rem;"><span class="status-badge status-' + displayStatus + '">' + displayStatus + '</span></td>' +
+          '<td style="padding:0.75rem 1rem;text-align:right;">' +
+            '<button class="action-btn" onclick="editSku(\'' + sku.id + '\')">Edit</button>' +
+            '<button class="action-btn action-btn-danger" onclick="deleteSku(\'' + sku.id + '\')">Delete</button>' +
+          '</td>' +
+        '</tr>';
+
+      return mainRow + subRow;
     }
 
     window.toggleSkuEntries = function(skuId) {
@@ -2634,15 +2746,17 @@
         producers.filter(p => p.status !== 'archived').map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     }
 
-    function openSkuModal(sku = null) {
+    function openSkuModal(sku, producerId) {
+      sku = sku || null;
       editingSku = sku;
       populateSkuProducerDropdown();
       document.getElementById('skuModalTitle').textContent = sku ? 'Edit Coffee SKU' : 'Add Coffee SKU';
-      document.getElementById('skuProducer').value = sku?.producerId || '';
-      document.getElementById('skuName').value     = sku?.name       || '';
-      document.getElementById('skuStatus').value   = sku?.status     || 'live';
+      document.getElementById('skuProducer').value = sku ? (sku.producerId || '') : (producerId || '');
+      document.getElementById('skuName').value     = sku ? (sku.name       || '') : '';
+      document.getElementById('skuStatus').value   = sku ? (sku.status     || 'live') : 'live';
       document.getElementById('skuModal').classList.add('active');
     }
+    window.openSkuModal = openSkuModal;
 
     function closeSkuModal() {
       document.getElementById('skuModal').classList.remove('active');
@@ -4198,6 +4312,7 @@
         producers = data ? Object.values(data) : [];
         renderProducerTable();
         updateSkuSelect();
+        renderSkuTable();
         renderGvTable();
       });
       // SKUs + crop entries
