@@ -3557,11 +3557,6 @@
       // Fetch latest shared data from Firebase (falls back to localStorage if offline)
       await initFromCloud();
 
-      // Clear old log data from Firebase + localStorage (schema migration)
-      logs = [];
-      localStorage.removeItem('logs');
-      db.ref('hlc/logs').remove().catch(() => {});
-
       // Render UI with cloud data
       renderProducerTable();
       updateSkuSelect();
