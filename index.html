@@ -1682,7 +1682,7 @@
     let cropEntries = loadData('cropEntries', []);
     // { id, skuId, cropMonth, cropYear, baseGreenPrice, finalReleasePrice }
 
-    let logs                = [];   // cleared — fresh start with new schema
+    let logs                = loadData('logs', []);   // localStorage as offline cache; Firebase overwrites on load
     let editingSku          = null;
     let editingProducer     = null;
     let editingCropEntry    = null;
@@ -2234,7 +2234,8 @@
       } else {
         producers.push(data);
       }
-      saveData('producers', producers);
+      localStorage.setItem('producers', JSON.stringify(producers));
+      db.ref('hlc/producers/' + data.id).set(data).catch(e => console.warn('[Firebase] producer save failed:', e));
       closeProducerModal();
       renderProducerTable();
       updateSkuSelect();       // producer list in SKU modal needs refresh
@@ -2251,7 +2252,8 @@
       if (hasSkus) { showToast('Remove all SKUs under this producer first', 'warning'); return; }
       if (await showConfirm('Delete this producer?', 'Delete Producer')) {
         producers = producers.filter(p => p.id !== id);
-        saveData('producers', producers);
+        localStorage.setItem('producers', JSON.stringify(producers));
+        db.ref('hlc/producers/' + id).remove().catch(e => console.warn('[Firebase] producer delete failed:', e));
         renderProducerTable();
         showToast('Producer deleted');
       }
@@ -2551,8 +2553,8 @@
       } else {
         skus.push(skuData);
       }
-
-      saveData('skus', skus);
+      localStorage.setItem('skus', JSON.stringify(skus));
+      db.ref('hlc/skus/' + skuData.id).set(skuData).catch(e => console.warn('[Firebase] SKU save failed:', e));
       closeSkuModal();
       updateSkuSelect();
       renderSkuTable();
@@ -2570,10 +2572,13 @@
         ? 'This SKU has crop entries. Deleting it will also remove all its entries. Continue?'
         : 'Delete this Coffee SKU?';
       if (await showConfirm(msg, 'Delete SKU')) {
+        const removedEntryIds = cropEntries.filter(e => e.skuId === id).map(e => e.id);
         cropEntries = cropEntries.filter(e => e.skuId !== id);
         skus = skus.filter(s => s.id !== id);
-        saveData('skus', skus);
-        saveData('cropEntries', cropEntries);
+        localStorage.setItem('skus', JSON.stringify(skus));
+        localStorage.setItem('cropEntries', JSON.stringify(cropEntries));
+        db.ref('hlc/skus/' + id).remove().catch(e => console.warn('[Firebase] SKU delete failed:', e));
+        removedEntryIds.forEach(eid => db.ref('hlc/cropEntries/' + eid).remove().catch(e => console.warn('[Firebase] crop entry delete failed:', e)));
         updateSkuSelect();
         renderSkuTable();
         showToast('Coffee SKU deleted');
@@ -2635,7 +2640,8 @@
         cropEntries.push(data);
       }
 
-      saveData('cropEntries', cropEntries);
+      localStorage.setItem('cropEntries', JSON.stringify(cropEntries));
+      db.ref('hlc/cropEntries/' + data.id).set(data).catch(e => console.warn('[Firebase] crop entry save failed:', e));
       closeCropEntryModal();
       updateSkuSelect();
       renderSkuTable();
@@ -2651,7 +2657,8 @@
       if (await showConfirm('Delete this crop entry?', 'Delete Entry')) {
         const skuId = cropEntries.find(e => e.id === entryId)?.skuId;
         cropEntries = cropEntries.filter(e => e.id !== entryId);
-        saveData('cropEntries', cropEntries);
+        localStorage.setItem('cropEntries', JSON.stringify(cropEntries));
+        db.ref('hlc/cropEntries/' + entryId).remove().catch(e => console.warn('[Firebase] crop entry delete failed:', e));
         updateSkuSelect();
         renderSkuTable();
         if (skuId) setTimeout(() => {
@@ -3574,12 +3581,12 @@
         overlay.style.display = 'flex';
         return;
       }
-      overlay.style.display = 'none';
       if (appInitialised) return;   // token refresh — app already running, do nothing
       appInitialised = true;
 
-      // Fetch latest shared data from Firebase (falls back to localStorage if offline)
+      // Fetch latest shared data from Firebase before showing the app
       await initFromCloud();
+      overlay.style.display = 'none';  // hide sign-in screen only after data is ready
 
       // Render UI with cloud data
       renderProducerTable();
