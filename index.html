@@ -4477,6 +4477,12 @@
         }
       });
 
+      // Re-apply view state AFTER Chart.js init — Chart.js (responsive:true) can
+      // reset canvas display during construction, which would flip back to chart view.
+      canvas.style.display = ptCurrentView === 'chart' ? 'block' : 'none';
+      var ptTableDivPost = document.getElementById('ptTableContainer');
+      if (ptTableDivPost) ptTableDivPost.style.display = ptCurrentView === 'table' ? 'block' : 'none';
+
       // If in table view, render the table now (chart was built but hidden)
       if (ptCurrentView === 'table') renderPriceTable();
 
