@@ -1388,11 +1388,26 @@
               🖨 Print / Save PDF
             </button>
           </div>
+          <!-- Chart / Table view toggle -->
+          <div id="ptViewToggle" style="display:none;gap:0.25rem;margin-bottom:1rem;">
+            <button id="ptViewChartBtn" onclick="ptSwitchView('chart')"
+              style="background:#2D5940;color:#fff;border:1.5px solid #2D5940;border-radius:8px 0 0 8px;
+                padding:0.3rem 0.85rem;font-size:0.8rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;">
+              📈 Chart
+            </button>
+            <button id="ptViewTableBtn" onclick="ptSwitchView('table')"
+              style="background:transparent;color:var(--text-secondary);border:1.5px solid var(--border-medium);
+                border-radius:0 8px 8px 0;padding:0.3rem 0.85rem;font-size:0.8rem;font-weight:600;
+                font-family:inherit;cursor:pointer;transition:all 0.2s;">
+              📋 Table
+            </button>
+          </div>
           <div id="ptEmptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:0.5rem;color:var(--text-tertiary);">
             <span style="font-size:2rem;">📈</span>
             <span style="font-size:0.9rem;">Select a producer to see their price trends</span>
           </div>
           <canvas id="ptChart" style="display:none;width:100%;"></canvas>
+          <div id="ptTableContainer" style="display:none;"></div>
         </div>
 
         <div id="ptStats" style="display:none;margin-top:1rem;">
@@ -3898,6 +3913,7 @@
     // ============================================
 
     let ptChartInstance = null;
+    var ptCurrentView   = 'chart'; // 'chart' | 'table'
 
     function populatePtProducerFilter() {
       const sel = document.getElementById('ptProducerFilter');
@@ -3992,6 +4008,10 @@
         empty.querySelector('span:last-child').textContent = msg;
         stats.style.display    = 'none';
         togglesEl.style.display = 'none';
+        var vt = document.getElementById('ptViewToggle');
+        if (vt) vt.style.display = 'none';
+        var td = document.getElementById('ptTableContainer');
+        if (td) { td.style.display = 'none'; td.innerHTML = ''; }
         if (ptChartInstance) { ptChartInstance.destroy(); ptChartInstance = null; }
       }
 
@@ -4129,9 +4149,18 @@
       }
 
       empty.style.display     = 'none';
-      canvas.style.display    = 'block';
+      canvas.style.display    = ptCurrentView === 'chart' ? 'block' : 'none';
+      var ptTableDiv = document.getElementById('ptTableContainer');
+      if (ptTableDiv) ptTableDiv.style.display = ptCurrentView === 'table' ? 'block' : 'none';
       stats.style.display     = 'block';
       togglesEl.style.display = 'flex';
+      var ptVT = document.getElementById('ptViewToggle');
+      if (ptVT) ptVT.style.display = 'flex';
+      // Sync view toggle button states
+      var btnC = document.getElementById('ptViewChartBtn');
+      var btnT = document.getElementById('ptViewTableBtn');
+      if (btnC) { btnC.style.background = ptCurrentView === 'chart' ? '#2D5940' : 'transparent'; btnC.style.color = ptCurrentView === 'chart' ? '#fff' : 'var(--text-secondary)'; btnC.style.borderColor = ptCurrentView === 'chart' ? '#2D5940' : 'var(--border-medium)'; }
+      if (btnT) { btnT.style.background = ptCurrentView === 'table' ? '#2D5940' : 'transparent'; btnT.style.color = ptCurrentView === 'table' ? '#fff' : 'var(--text-secondary)'; btnT.style.borderColor = ptCurrentView === 'table' ? '#2D5940' : 'var(--border-medium)'; }
 
       // Show/dim toggle buttons based on which datasets exist
       var hasBase     = datasets.some(function(d) { return d.ptType === 'base'; });
@@ -4193,6 +4222,9 @@
           }
         }
       });
+
+      // If in table view, render the table now (chart was built but hidden)
+      if (ptCurrentView === 'table') renderPriceTable();
 
       // ── Stat cards ─────────────────────────────────────────────────────
 
@@ -4304,6 +4336,129 @@
       var btnMap   = { varietal: 'ptToggleVarietals', base: 'ptToggleBase', final: 'ptToggleFinal' };
       ptSetToggleActive(btnMap[type], colorMap[type], makeVisible);
     };
+
+    // ── Chart / Table view switcher ────────────────────────────────────────
+    window.ptSwitchView = function(view) {
+      ptCurrentView = view;
+      var canvas   = document.getElementById('ptChart');
+      var tableDiv = document.getElementById('ptTableContainer');
+      var btnC     = document.getElementById('ptViewChartBtn');
+      var btnT     = document.getElementById('ptViewTableBtn');
+      if (canvas)   canvas.style.display   = view === 'chart' ? 'block' : 'none';
+      if (tableDiv) tableDiv.style.display = view === 'table' ? 'block' : 'none';
+      if (btnC) { btnC.style.background = view === 'chart' ? '#2D5940' : 'transparent'; btnC.style.color = view === 'chart' ? '#fff' : 'var(--text-secondary)'; btnC.style.borderColor = view === 'chart' ? '#2D5940' : 'var(--border-medium)'; }
+      if (btnT) { btnT.style.background = view === 'table' ? '#2D5940' : 'transparent'; btnT.style.color = view === 'table' ? '#fff' : 'var(--text-secondary)'; btnT.style.borderColor = view === 'table' ? '#2D5940' : 'var(--border-medium)'; }
+      if (view === 'table') renderPriceTable();
+    };
+
+    // ── Price data table ──────────────────────────────────────────────────
+    function renderPriceTable() {
+      var container  = document.getElementById('ptTableContainer');
+      if (!container) return;
+      var producerId = document.getElementById('ptProducerFilter').value;
+      var skuId      = document.getElementById('ptSkuNameFilter').value;
+      if (!producerId) { container.innerHTML = ''; return; }
+
+      // Read checked varietal IDs
+      var checkedPtIds = null;
+      var ptCbs = document.querySelectorAll('#ptVarietalCheckboxes input[type="checkbox"]');
+      if (ptCbs.length > 0) {
+        checkedPtIds = [];
+        ptCbs.forEach(function(cb) { if (cb.checked) checkedPtIds.push(cb.value); });
+      }
+
+      var producerVarietals  = greenVarietals.filter(function(gv) { return gv.producerId === producerId; });
+      var visibleVarietals   = producerVarietals.filter(function(gv) {
+        return checkedPtIds === null || checkedPtIds.indexOf(gv.id) !== -1;
+      });
+      var selectedSku        = skuId ? skus.find(function(s) { return s.id === skuId; }) : null;
+      var skuCropEntries     = skuId ? cropEntries.filter(function(e) { return e.skuId === skuId; }) : [];
+      var showSkuCols        = skuCropEntries.length > 0;
+
+      // Build unified date set (newest first)
+      var seenDates = {};
+      visibleVarietals.forEach(function(gv) {
+        greenVarietalPrices.filter(function(p) { return p.varietalId === gv.id; }).forEach(function(p) {
+          seenDates[String(p.year).padStart(4,'0') + String(p.month).padStart(2,'0')] = true;
+        });
+      });
+      skuCropEntries.forEach(function(e) {
+        seenDates[String(e.cropYear).padStart(4,'0') + String(e.cropMonth).padStart(2,'0')] = true;
+      });
+      var dateKeys = Object.keys(seenDates).sort().reverse();
+
+      if (dateKeys.length === 0) {
+        container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-tertiary);font-size:0.9rem;">No data to display for current selection.</div>';
+        return;
+      }
+
+      // Header
+      var thStyle   = 'text-align:left;padding:0.55rem 0.875rem;font-size:0.7rem;font-weight:700;text-transform:uppercase;' +
+                      'letter-spacing:0.06em;color:var(--text-tertiary);background:var(--bg-tertiary);white-space:nowrap;';
+      var thStyleR  = thStyle + 'text-align:right;';
+      var headerCols = '<th style="' + thStyle + 'border-radius:8px 0 0 0;">Month</th>';
+      visibleVarietals.forEach(function(gv) {
+        var origIdx = producerVarietals.indexOf(gv);
+        var color   = PT_COLORS[origIdx % PT_COLORS.length].border;
+        headerCols += '<th style="' + thStyleR + '">' +
+          '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + color + ';margin-right:0.35rem;vertical-align:middle;"></span>' +
+          gv.name + '</th>';
+      });
+      if (showSkuCols) {
+        var skuLabel = selectedSku ? selectedSku.name : 'SKU';
+        headerCols += '<th style="' + thStyleR + 'color:#4A7FC1;">' + skuLabel + ' Base</th>';
+        headerCols += '<th style="' + thStyleR + 'color:#C07030;border-radius:0 8px 0 0;">' + skuLabel + ' Release</th>';
+      }
+
+      // Rows
+      var tdBase = 'padding:0.6rem 0.875rem;border-bottom:1px solid var(--border-light);font-size:0.875rem;white-space:nowrap;';
+      var rows = dateKeys.map(function(dk, rowIdx) {
+        var label  = dk.slice(4,6) + '/' + dk.slice(0,4);
+        var bgRow  = rowIdx % 2 === 0 ? 'background:var(--bg-secondary);' : 'background:var(--bg-primary);';
+        var cells  = '<td style="' + tdBase + bgRow + 'font-weight:700;color:var(--text-secondary);">' + label + '</td>';
+
+        visibleVarietals.forEach(function(gv) {
+          var origIdx = producerVarietals.indexOf(gv);
+          var color   = PT_COLORS[origIdx % PT_COLORS.length].border;
+          var entry   = greenVarietalPrices.find(function(p) {
+            return p.varietalId === gv.id &&
+              String(p.year).padStart(4,'0') + String(p.month).padStart(2,'0') === dk;
+          });
+          cells += '<td style="' + tdBase + bgRow + 'text-align:right;">' +
+            (entry
+              ? '<span style="font-weight:700;color:' + color + ';">₹' + parseFloat(entry.boughtPrice).toFixed(0) + '</span>' +
+                '<span style="font-size:0.75rem;color:var(--text-tertiary);margin-left:2px;">/kg</span>'
+              : '<span style="color:var(--border-medium);">—</span>'
+            ) + '</td>';
+        });
+
+        if (showSkuCols) {
+          var ce = skuCropEntries.find(function(e) {
+            return String(e.cropYear).padStart(4,'0') + String(e.cropMonth).padStart(2,'0') === dk;
+          });
+          cells += '<td style="' + tdBase + bgRow + 'text-align:right;">' +
+            (ce && ce.baseGreenPrice
+              ? '<span style="font-weight:700;color:#4A7FC1;">₹' + parseFloat(ce.baseGreenPrice).toFixed(0) + '</span>' +
+                '<span style="font-size:0.75rem;color:var(--text-tertiary);margin-left:2px;">/kg</span>'
+              : '<span style="color:var(--border-medium);">—</span>'
+            ) + '</td>';
+          cells += '<td style="' + tdBase + bgRow + 'text-align:right;">' +
+            (ce && ce.finalReleasePrice
+              ? '<span style="font-weight:700;color:#C07030;">₹' + parseFloat(ce.finalReleasePrice).toFixed(0) + '</span>' +
+                '<span style="font-size:0.75rem;color:var(--text-tertiary);margin-left:2px;">/kg</span>'
+              : '<span style="color:var(--border-medium);">—</span>'
+            ) + '</td>';
+        }
+        return '<tr>' + cells + '</tr>';
+      }).join('');
+
+      container.innerHTML =
+        '<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border-light);">' +
+        '<table style="width:100%;border-collapse:collapse;min-width:360px;">' +
+        '<thead><tr>' + headerCols + '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+        '</table></div>';
+    }
 
     // ============================================
     // PRICE TRACKER PRINT
