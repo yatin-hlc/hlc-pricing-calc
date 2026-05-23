@@ -1248,6 +1248,24 @@
             </div>
             <div id="gvVarietalCheckboxes" style="display:flex;flex-wrap:wrap;gap:0.5rem 1.25rem;"></div>
           </div>
+          <!-- Shipment date range filter -->
+          <div style="margin-bottom:1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+              <label style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Filter by Shipment Date</label>
+              <button id="gvClearShipmentFilter" style="display:none;font-size:0.75rem;color:var(--accent-green);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;padding:0;">Clear</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <span style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">From</span>
+                <input type="month" id="gvShipmentFrom" style="font-family:inherit;font-size:0.875rem;padding:0.45rem 0.75rem;border:1.5px solid var(--border-light);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;">
+              </div>
+              <div style="font-size:1rem;color:var(--text-tertiary);margin-top:1.1rem;">→</div>
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <span style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">To</span>
+                <input type="month" id="gvShipmentTo" style="font-family:inherit;font-size:0.875rem;padding:0.45rem 0.75rem;border:1.5px solid var(--border-light);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;">
+              </div>
+            </div>
+          </div>
           <div id="gvTableContainer"></div>
         </div>
       </div>
@@ -2993,9 +3011,17 @@
     function renderGvTable() {
       const container  = document.getElementById('gvTableContainer');
       if (!container) return;
-      const searchTerm        = (document.getElementById('gvSearch') ? document.getElementById('gvSearch').value : '').toLowerCase();
+      const searchTerm         = (document.getElementById('gvSearch') ? document.getElementById('gvSearch').value : '').toLowerCase();
       const plantationFilterEl = document.getElementById('gvPlantationFilter');
       const selectedProducerId = plantationFilterEl ? plantationFilterEl.value : '';
+
+      // Shipment date range filter (values are "YYYY-MM" or empty)
+      const shipFromVal = (document.getElementById('gvShipmentFrom') || {}).value || '';
+      const shipToVal   = (document.getElementById('gvShipmentTo')   || {}).value || '';
+      const shipFromKey = shipFromVal ? shipFromVal.replace('-', '') : ''; // "YYYYMM"
+      const shipToKey   = shipToVal   ? shipToVal.replace('-', '')   : '';
+      const clearBtn    = document.getElementById('gvClearShipmentFilter');
+      if (clearBtn) clearBtn.style.display = (shipFromVal || shipToVal) ? 'inline' : 'none';
 
       // Collect checked varietal IDs from the checkbox panel
       var checkedVarietalIds = null; // null = no filter active
@@ -3083,7 +3109,17 @@
 
           pVarietals.forEach(function(gv, idx) {
             const prices = greenVarietalPrices
-              .filter(function(p) { return p.varietalId === gv.id; })
+              .filter(function(p) {
+                if (p.varietalId !== gv.id) return false;
+                // Shipment date range filter — skip 'pending' entries when filter active
+                if (shipFromKey || shipToKey) {
+                  if (!p.shipmentMonth || p.shipmentMonth === 'pending' || !p.shipmentYear) return false;
+                  var sKey = String(p.shipmentYear).padStart(4,'0') + String(p.shipmentMonth).padStart(2,'0');
+                  if (shipFromKey && sKey < shipFromKey) return false;
+                  if (shipToKey   && sKey > shipToKey)   return false;
+                }
+                return true;
+              })
               .sort(function(a, b) {
                 // Latest first — sort descending by year then month
                 var aKey = String(a.year).padStart(4,'0') + String(a.month).padStart(2,'0');
@@ -4485,6 +4521,15 @@
     document.getElementById('gvSelectAllVarietals').addEventListener('change', function() {
       document.querySelectorAll('#gvVarietalCheckboxes input[type="checkbox"]')
         .forEach(function(cb) { cb.checked = document.getElementById('gvSelectAllVarietals').checked; });
+      renderGvTable();
+    });
+
+    document.getElementById('gvShipmentFrom').addEventListener('change', renderGvTable);
+    document.getElementById('gvShipmentTo').addEventListener('change',   renderGvTable);
+    document.getElementById('gvClearShipmentFilter').addEventListener('click', function() {
+      document.getElementById('gvShipmentFrom').value = '';
+      document.getElementById('gvShipmentTo').value   = '';
+      this.style.display = 'none';
       renderGvTable();
     });
 
