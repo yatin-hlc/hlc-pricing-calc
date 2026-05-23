@@ -1651,8 +1651,14 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Shipment Receiving Month &amp; Year</label>
-          <div style="display:flex;gap:0.75rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+            <label style="margin:0;">Shipment Receiving Month &amp; Year</label>
+            <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-secondary);font-weight:400;cursor:pointer;">
+              <input type="checkbox" id="gvShipmentPending" style="cursor:pointer;">
+              Shipment not received yet
+            </label>
+          </div>
+          <div id="gvShipmentDateFields" style="display:flex;gap:0.75rem;">
             <select id="gvShipmentMonth" style="flex:1;">
               <option value="01">January</option><option value="02">February</option>
               <option value="03">March</option><option value="04">April</option>
@@ -3052,9 +3058,11 @@
             const priceCount = prices.length;
 
             const priceRows = prices.map(function(p, pi) {
-              var shipDate = (p.shipmentMonth && p.shipmentYear)
-                ? String(p.shipmentMonth).padStart(2,'0') + '/' + p.shipmentYear
-                : '—';
+              var shipDate = p.shipmentMonth === 'pending'
+                ? '<span style="color:var(--text-tertiary);font-style:italic;font-size:0.8rem;">Not received yet</span>'
+                : (p.shipmentMonth && p.shipmentYear)
+                  ? String(p.shipmentMonth).padStart(2,'0') + '/' + p.shipmentYear
+                  : '—';
               var qtyTxt   = p.quantityKg != null ? p.quantityKg + ' kg' : '—';
               var sacksTxt = p.sacks      != null ? p.sacks              : '—';
               return '<tr style="border-bottom:1px solid var(--border-light);">' +
@@ -3245,8 +3253,11 @@
       const nowYear  = now.getFullYear();
       document.getElementById('gvPriceMonth').value    = price ? price.month       : nowMonth;
       document.getElementById('gvPriceYear').value     = price ? price.year        : nowYear;
-      document.getElementById('gvShipmentMonth').value = price ? (price.shipmentMonth || nowMonth) : nowMonth;
-      document.getElementById('gvShipmentYear').value  = price ? (price.shipmentYear  || nowYear)  : nowYear;
+      const isPending = price ? price.shipmentMonth === 'pending' : false;
+      document.getElementById('gvShipmentPending').checked        = isPending;
+      document.getElementById('gvShipmentDateFields').style.display = isPending ? 'none' : 'flex';
+      document.getElementById('gvShipmentMonth').value = isPending ? nowMonth : (price ? (price.shipmentMonth || nowMonth) : nowMonth);
+      document.getElementById('gvShipmentYear').value  = isPending ? nowYear  : (price ? (price.shipmentYear  || nowYear)  : nowYear);
       document.getElementById('gvBoughtPrice').value   = price ? price.boughtPrice : '';
       document.getElementById('gvQuantityKg').value    = price ? (price.quantityKg  != null ? price.quantityKg  : '') : '';
       document.getElementById('gvSacks').value         = price ? (price.sacks       != null ? price.sacks       : '') : '';
@@ -3265,8 +3276,9 @@
       const month         = document.getElementById('gvPriceMonth').value;
       const year          = document.getElementById('gvPriceYear').value.trim();
       const price         = document.getElementById('gvBoughtPrice').value;
-      const shipmentMonth = document.getElementById('gvShipmentMonth').value;
-      const shipmentYear  = document.getElementById('gvShipmentYear').value.trim();
+      const shipmentPending = document.getElementById('gvShipmentPending').checked;
+      const shipmentMonth = shipmentPending ? 'pending' : document.getElementById('gvShipmentMonth').value;
+      const shipmentYear  = shipmentPending ? 'pending' : document.getElementById('gvShipmentYear').value.trim();
       const quantityKg    = document.getElementById('gvQuantityKg').value;
       const sacks         = document.getElementById('gvSacks').value;
 
@@ -4392,6 +4404,9 @@
     document.getElementById('closeGvPriceModal').addEventListener('click',   closeGvPriceModal);
     document.getElementById('cancelGvPriceBtn').addEventListener('click',    closeGvPriceModal);
     document.getElementById('confirmGvPriceBtn').addEventListener('click',   saveGvPrice);
+    document.getElementById('gvShipmentPending').addEventListener('change', function() {
+      document.getElementById('gvShipmentDateFields').style.display = this.checked ? 'none' : 'flex';
+    });
     document.getElementById('gvPriceModal').addEventListener('click', e => {
       if (e.target.id === 'gvPriceModal') closeGvPriceModal();
     });
