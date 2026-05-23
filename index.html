@@ -2732,9 +2732,14 @@
       var canAdd        = displayStatus === 'live';
 
       var entryRows = entries.map(function(e, ei) {
-        var base  = e.baseGreenPrice    ? '&#8377;' + parseFloat(e.baseGreenPrice).toFixed(0)    : '—';
-        var final = e.finalReleasePrice ? '&#8377;' + parseFloat(e.finalReleasePrice).toFixed(0) : null;
-        return '<tr style="border-bottom:1px solid var(--border-light);">' +
+        var base      = e.baseGreenPrice    ? '&#8377;' + parseFloat(e.baseGreenPrice).toFixed(0)    : '—';
+        var final     = e.finalReleasePrice ? '&#8377;' + parseFloat(e.finalReleasePrice).toFixed(0) : null;
+        var isActive  = e.status !== 'inactive';
+        var statusBg  = isActive ? '#DCFCE7' : 'var(--bg-tertiary)';
+        var statusClr = isActive ? '#15803D'  : 'var(--text-tertiary)';
+        var statusBdr = isActive ? '#86EFAC'  : 'var(--border-medium)';
+        var statusLbl = isActive ? 'ACTIVE'   : 'INACTIVE';
+        return '<tr style="border-bottom:1px solid var(--border-light);' + (!isActive ? 'opacity:0.6;' : '') + '">' +
           '<td style="padding:0.65rem 1rem;color:var(--text-tertiary);font-size:0.85rem;width:48px;">' + (ei + 1) + '</td>' +
           '<td style="padding:0.65rem 1rem;">' +
             '<span style="display:inline-block;background:#FFF7ED;color:var(--accent-coffee);border:1px solid #FED7AA;' +
@@ -2744,6 +2749,13 @@
           '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:var(--text-primary);">' + base + '</td>' +
           '<td style="padding:0.65rem 1rem;font-size:0.9rem;font-weight:700;color:' + (final ? '#2D5940' : 'var(--text-tertiary)') + ';">' +
             (final || '<span style="font-weight:400;font-style:italic;font-size:0.8rem;">not set yet</span>') +
+          '</td>' +
+          '<td style="padding:0.65rem 1rem;">' +
+            '<button onclick="toggleCropEntryStatus(\'' + e.id + '\')" ' +
+              'style="background:' + statusBg + ';color:' + statusClr + ';border:1.5px solid ' + statusBdr + ';' +
+              'border-radius:20px;padding:0.2rem 0.7rem;font-size:0.72rem;font-weight:700;font-family:inherit;' +
+              'cursor:pointer;letter-spacing:0.04em;transition:all 0.15s;" ' +
+              'title="Click to toggle">' + statusLbl + '</button>' +
           '</td>' +
           '<td style="padding:0.65rem 1rem;text-align:right;">' +
             '<button class="action-btn" style="font-size:0.8rem;" onclick="editCropEntry(\'' + e.id + '\')">Edit</button>' +
@@ -2758,6 +2770,7 @@
           '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Green Purchase Month/Year</th>' +
           '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Base Green &#8377;/kg</th>' +
           '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Final Release &#8377;/kg</th>' +
+          '<th style="text-align:left;padding:0.5rem 1rem;font-size:0.7rem;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Status</th>' +
           '<th style="padding:0.5rem 1rem;"></th>' +
           '</tr></thead><tbody>' + entryRows + '</tbody></table>'
         : '<div style="background:var(--bg-secondary);border:1px dashed var(--border-medium);border-radius:8px;' +
@@ -2885,7 +2898,7 @@
         }).sort(function(a, b) { return a.name.localeCompare(b.name); });
 
         pSkus.forEach(function(sku) {
-          const entries = cropEntries.filter(function(e) { return e.skuId === sku.id; })
+          const entries = cropEntries.filter(function(e) { return e.skuId === sku.id && e.status !== 'inactive'; })
             .sort(function(a, b) { return (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth); });
           if (!entries.length) return;
           hasAny = true;
@@ -2950,7 +2963,7 @@
                           .sort((a, b) => a.name.localeCompare(b.name));
         pSkus.forEach(sku => {
           const entries = cropEntries
-            .filter(e => e.skuId === sku.id)
+            .filter(e => e.skuId === sku.id && e.status !== 'inactive')
             .sort((a, b) => (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth));
           if (!entries.length) return;
           entries.forEach(e => {
@@ -3102,7 +3115,8 @@
         cropMonth:         month,
         cropYear:          year,
         baseGreenPrice:    base,
-        finalReleasePrice: final
+        finalReleasePrice: final,
+        status:            editingCropEntry?.status || 'active'
       };
 
       if (editingCropEntry) {
@@ -3123,6 +3137,25 @@
       }, 50);
       showToast('Crop entry saved');
     }
+
+    window.toggleCropEntryStatus = function(entryId) {
+      var idx = cropEntries.findIndex(function(e) { return e.id === entryId; });
+      if (idx === -1) return;
+      var entry      = cropEntries[idx];
+      var newStatus  = entry.status === 'inactive' ? 'active' : 'inactive';
+      var updated    = Object.assign({}, entry, { status: newStatus });
+      cropEntries[idx] = updated;
+      localStorage.setItem('cropEntries', JSON.stringify(cropEntries));
+      db.ref('hlc/cropEntries/' + entryId).set(updated).catch(function(e) { console.warn('[Firebase] crop entry status save failed:', e); });
+      updateSkuSelect();
+      renderSkuTable();
+      var skuId = entry.skuId;
+      setTimeout(function() {
+        var row = document.getElementById('skuEntries_' + skuId);
+        if (row) row.style.display = 'table-row';
+      }, 50);
+      showToast(newStatus === 'active' ? 'Crop entry set to Active' : 'Crop entry set to Inactive');
+    };
 
     window.deleteCropEntry = async function(entryId) {
       if (await showConfirm('Delete this crop entry?', 'Delete Entry')) {
@@ -4172,7 +4205,7 @@
       // SKUs for this producer that have at least one crop entry
       const producerSkus = skus.filter(function(s) {
         return (!producerId || s.producerId === producerId) &&
-               cropEntries.some(function(e) { return e.skuId === s.id; });
+               cropEntries.some(function(e) { return e.skuId === s.id && e.status !== 'inactive'; });
       });
       sel.innerHTML = '<option value="">— Select a SKU —</option>' +
         producerSkus.map(function(s) {
