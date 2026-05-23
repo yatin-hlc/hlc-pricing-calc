@@ -1353,6 +1353,17 @@
               </select>
             </div>
           </div>
+          <!-- Varietal checkbox filter — shown when a producer with varietals is selected -->
+          <div id="ptVarietalFilterPanel" style="display:none;margin-top:1rem;border-top:1px solid var(--border-light);padding-top:1rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+              <label style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Show Varietals on Chart</label>
+              <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.8rem;color:var(--accent-green);font-weight:600;cursor:pointer;">
+                <input type="checkbox" id="ptSelectAllVarietals" checked style="cursor:pointer;accent-color:var(--accent-green);">
+                All
+              </label>
+            </div>
+            <div id="ptVarietalCheckboxes" style="display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;"></div>
+          </div>
         </div>
 
         <div class="card" style="position:relative;min-height:320px;">
@@ -3916,7 +3927,45 @@
         }).join('');
       // Restore previous selection if still valid
       if (cur && producerSkus.some(function(s) { return s.id === cur; })) sel.value = cur;
+      buildPtVarietalCheckboxes(producerId);
       renderPriceChart();
+    }
+
+    // ── Varietal checkbox panel for Price Tracker ─────────────────────────
+    function buildPtVarietalCheckboxes(producerId) {
+      var panel     = document.getElementById('ptVarietalFilterPanel');
+      var container = document.getElementById('ptVarietalCheckboxes');
+      var selectAll = document.getElementById('ptSelectAllVarietals');
+      if (!panel || !container) return;
+      if (!producerId) { panel.style.display = 'none'; container.innerHTML = ''; return; }
+      var ptVarAll   = greenVarietals.filter(function(gv) { return gv.producerId === producerId; }); // unsorted — matches chart color index
+      var pVarietals = ptVarAll.slice().sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+      if (pVarietals.length === 0) { panel.style.display = 'none'; container.innerHTML = ''; return; }
+      container.innerHTML = pVarietals.map(function(gv) {
+        var origIdx = ptVarAll.indexOf(gv);
+        var color   = PT_COLORS[origIdx % PT_COLORS.length].border;
+        return '<label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;' +
+          'color:var(--text-primary);font-weight:500;white-space:nowrap;">' +
+          '<input type="checkbox" value="' + gv.id + '" checked ' +
+            'style="cursor:pointer;accent-color:' + color + ';width:14px;height:14px;">' +
+          '<span style="width:9px;height:9px;border-radius:50%;background:' + color + ';' +
+            'flex-shrink:0;display:inline-block;"></span>' +
+          gv.name +
+        '</label>';
+      }).join('');
+      if (selectAll) selectAll.checked = true;
+      panel.style.display = 'block';
+      container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+          var allCbs = Array.from(container.querySelectorAll('input[type="checkbox"]'));
+          if (selectAll) selectAll.checked = allCbs.every(function(c) { return c.checked; });
+          renderPriceChart();
+        });
+      });
+      selectAll.onchange = function() {
+        container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = selectAll.checked; });
+        renderPriceChart();
+      };
     }
 
     // Color palette for varietal lines
@@ -3948,12 +3997,22 @@
 
       if (!producerId) { showEmpty('Select a producer to see their price trends'); return; }
 
+      // Read checked varietal IDs from checkbox panel (null = no panel / all visible)
+      var checkedPtVarietalIds = null;
+      var ptCbs = document.querySelectorAll('#ptVarietalCheckboxes input[type="checkbox"]');
+      if (ptCbs.length > 0) {
+        checkedPtVarietalIds = [];
+        ptCbs.forEach(function(cb) { if (cb.checked) checkedPtVarietalIds.push(cb.value); });
+      }
+
       // ── Green Varietal datasets ─────────────────────────────────────────
       var producerVarietals = greenVarietals.filter(function(gv) {
         return gv.producerId === producerId;
       });
       var allPriceEntries = greenVarietalPrices.filter(function(p) {
-        return producerVarietals.some(function(gv) { return gv.id === p.varietalId; });
+        if (!producerVarietals.some(function(gv) { return gv.id === p.varietalId; })) return false;
+        if (checkedPtVarietalIds !== null && checkedPtVarietalIds.indexOf(p.varietalId) === -1) return false;
+        return true;
       });
 
       // ── SKU crop entries (base + final) ────────────────────────────────
@@ -3986,6 +4045,7 @@
 
       // 1. One line per varietal (green palette, ptType = 'varietal')
       producerVarietals.forEach(function(gv, idx) {
+        if (checkedPtVarietalIds !== null && checkedPtVarietalIds.indexOf(gv.id) === -1) return;
         var color   = PT_COLORS[idx % PT_COLORS.length];
         var entries = greenVarietalPrices.filter(function(p) { return p.varietalId === gv.id; });
         var hasAny  = entries.length > 0;
