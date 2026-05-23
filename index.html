@@ -1220,9 +1220,10 @@
             </div>
             <div style="display:flex;gap:0.5rem;align-items:center;">
               <button id="gvSummaryToggleBtn" onclick="toggleGvSummary()"
-                style="background:transparent;border:1.5px solid var(--border-medium);border-radius:20px;
-                  padding:0.3rem 0.875rem;font-size:0.8rem;font-weight:600;font-family:inherit;
-                  cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">
+                style="padding:0.5rem 1.1rem;border:1.5px solid var(--accent-coffee);border-radius:8px;
+                  background:var(--bg-secondary);font-family:inherit;font-size:0.875rem;font-weight:600;
+                  color:var(--accent-coffee);cursor:pointer;transition:all 0.15s;
+                  box-shadow:4px 4px 0px var(--accent-coffee);letter-spacing:0.01em;">
                 📊 Summary
               </button>
               <button class="btn btn-primary" id="addGreenVarietalBtn">+ Add Varietal</button>
@@ -3448,9 +3449,9 @@
       document.getElementById('gvSummaryPanel').style.display = gvSummaryOpen ? 'block' : 'none';
       var btn = document.getElementById('gvSummaryToggleBtn');
       if (btn) {
-        btn.style.background  = gvSummaryOpen ? 'var(--accent-green)' : 'transparent';
-        btn.style.color       = gvSummaryOpen ? '#fff' : 'var(--text-secondary)';
-        btn.style.borderColor = gvSummaryOpen ? 'var(--accent-green)' : 'var(--border-medium)';
+        btn.style.boxShadow  = gvSummaryOpen ? '1px 1px 0px var(--accent-coffee)' : '4px 4px 0px var(--accent-coffee)';
+        btn.style.transform  = gvSummaryOpen ? 'translate(3px,3px)' : 'translate(0,0)';
+        btn.style.background = gvSummaryOpen ? '#FFF7ED' : 'var(--bg-secondary)';
       }
       if (gvSummaryOpen) renderGvSummary();
     };
