@@ -1218,7 +1218,15 @@
               <h2 class="card-title">Green Coffee Buying (Varietals)</h2>
               <p class="card-subtitle">Annual green coffee buying log — sourcing records, invoice dates, shipment tracking</p>
             </div>
-            <button class="btn btn-primary" id="addGreenVarietalBtn">+ Add Varietal</button>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <button id="gvSummaryToggleBtn" onclick="toggleGvSummary()"
+                style="background:transparent;border:1.5px solid var(--border-medium);border-radius:20px;
+                  padding:0.3rem 0.875rem;font-size:0.8rem;font-weight:600;font-family:inherit;
+                  cursor:pointer;color:var(--text-secondary);transition:all 0.2s;">
+                📊 Summary
+              </button>
+              <button class="btn btn-primary" id="addGreenVarietalBtn">+ Add Varietal</button>
+            </div>
           </div>
           <p style="font-size:0.78rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
             color:var(--accent-coffee);background:var(--accent-amber-light);
@@ -1286,6 +1294,52 @@
           </div>
           <!-- Active filter status bar -->
           <div id="gvFilterStatus" style="display:none;align-items:center;gap:0.5rem;flex-wrap:wrap;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:8px;padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.82rem;"></div>
+
+          <!-- Buying Summary panel -->
+          <div id="gvSummaryPanel" style="display:none;background:var(--bg-secondary);border:1.5px solid var(--border-medium);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;">
+              <span style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">📊 Buying Summary</span>
+              <span style="font-size:0.75rem;color:var(--text-tertiary);">Reads active plantation &amp; varietal filters above</span>
+            </div>
+            <!-- Invoice date range -->
+            <div style="margin-bottom:1rem;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+                <label style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Invoice Date Range</label>
+                <button id="gvSumClearBtn" style="display:none;font-size:0.75rem;color:var(--accent-green);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;padding:0;">✕ Clear</button>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:0.75rem;flex-wrap:wrap;">
+                <div>
+                  <div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem;">From</div>
+                  <div style="display:flex;gap:0.5rem;">
+                    <select id="gvSumFromMonth" style="font-family:inherit;font-size:0.875rem;">
+                      <option value="">Month</option>
+                      <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                      <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                      <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                      <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                    </select>
+                    <input type="number" id="gvSumFromYear" placeholder="Year" min="2000" max="2099" style="font-family:inherit;font-size:0.875rem;width:80px;">
+                  </div>
+                </div>
+                <div style="font-size:1.1rem;color:var(--text-tertiary);padding-bottom:0.4rem;">→</div>
+                <div>
+                  <div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem;">To</div>
+                  <div style="display:flex;gap:0.5rem;">
+                    <select id="gvSumToMonth" style="font-family:inherit;font-size:0.875rem;">
+                      <option value="">Month</option>
+                      <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                      <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                      <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                      <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                    </select>
+                    <input type="number" id="gvSumToYear" placeholder="Year" min="2000" max="2099" style="font-family:inherit;font-size:0.875rem;width:80px;">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="gvSummaryTable"></div>
+          </div>
+
           <div id="gvTableContainer"></div>
         </div>
       </div>
@@ -3380,6 +3434,146 @@
       container.innerHTML = html;
     }
 
+    // ── Buying Summary panel ───────────────────────────────────────────────
+    var gvSummaryOpen = false;
+
+    window.toggleGvSummary = function() {
+      gvSummaryOpen = !gvSummaryOpen;
+      document.getElementById('gvSummaryPanel').style.display = gvSummaryOpen ? 'block' : 'none';
+      var btn = document.getElementById('gvSummaryToggleBtn');
+      if (btn) {
+        btn.style.background  = gvSummaryOpen ? 'var(--accent-green)' : 'transparent';
+        btn.style.color       = gvSummaryOpen ? '#fff' : 'var(--text-secondary)';
+        btn.style.borderColor = gvSummaryOpen ? 'var(--accent-green)' : 'var(--border-medium)';
+      }
+      if (gvSummaryOpen) renderGvSummary();
+    };
+
+    function renderGvSummary() {
+      var out = document.getElementById('gvSummaryTable');
+      if (!out) return;
+
+      // Read existing plantation + varietal filters
+      var selectedProducerId = (document.getElementById('gvPlantationFilter') || {}).value || '';
+      var checkedIds = null;
+      if (selectedProducerId) {
+        var cbs = document.querySelectorAll('#gvVarietalCheckboxes input[type="checkbox"]');
+        if (cbs.length > 0) {
+          checkedIds = [];
+          cbs.forEach(function(cb) { if (cb.checked) checkedIds.push(cb.value); });
+        }
+      }
+
+      // Read invoice date range
+      var sfm = (document.getElementById('gvSumFromMonth') || {}).value || '';
+      var sfy = ((document.getElementById('gvSumFromYear')  || {}).value || '').trim();
+      var stm = (document.getElementById('gvSumToMonth')   || {}).value || '';
+      var sty = ((document.getElementById('gvSumToYear')   || {}).value || '').trim();
+      var dateFrom = (sfm && sfy && sfy.length === 4) ? sfy + sfm : '';
+      var dateTo   = (stm && sty && sty.length === 4) ? sty + stm : '';
+      var clearBtn = document.getElementById('gvSumClearBtn');
+      if (clearBtn) clearBtn.style.display = (sfm || sfy || stm || sty) ? 'inline' : 'none';
+
+      // Build producer list to iterate
+      var activeProducers = producers.filter(function(p) { return p.status !== 'archived'; });
+      if (selectedProducerId) activeProducers = activeProducers.filter(function(p) { return p.id === selectedProducerId; });
+
+      // Aggregation
+      var grandEntries = 0, grandKg = 0, grandWithQty = 0;
+      var rows = [];
+
+      activeProducers.forEach(function(prod) {
+        var pVarietals = greenVarietals
+          .filter(function(gv) { return gv.producerId === prod.id; })
+          .filter(function(gv) { return checkedIds === null || checkedIds.indexOf(gv.id) !== -1; })
+          .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+        if (pVarietals.length === 0) return;
+
+        var prodEntries = 0, prodKg = 0, prodWithQty = 0;
+
+        var varRows = pVarietals.map(function(gv) {
+          var entryCount = 0, totalKg = 0, withQty = 0;
+          greenVarietalPrices.forEach(function(p) {
+            if (p.varietalId !== gv.id) return;
+            var dk = String(p.year).padStart(4,'0') + String(p.month).padStart(2,'0');
+            if (dateFrom && dk < dateFrom) return;
+            if (dateTo   && dk > dateTo)   return;
+            entryCount++;
+            if (p.quantityKg != null) { totalKg += p.quantityKg; withQty++; }
+          });
+          prodEntries += entryCount; prodKg += totalKg; prodWithQty += withQty;
+          grandEntries += entryCount; grandKg += totalKg; grandWithQty += withQty;
+          return { name: gv.name, entryCount: entryCount, totalKg: totalKg, withQty: withQty };
+        }).filter(function(r) { return r.entryCount > 0; });
+
+        rows.push({ prod: prod, varRows: varRows, prodEntries: prodEntries, prodKg: prodKg, prodWithQty: prodWithQty });
+      });
+
+      if (rows.length === 0 || grandEntries === 0) {
+        out.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:0.875rem;padding:1.25rem 0;">' +
+          (grandEntries === 0 && (dateFrom || dateTo) ? 'No entries found in this invoice date range.' : 'No buying entries recorded yet.') + '</div>';
+        return;
+      }
+
+      var thS  = 'padding:0.5rem 0.875rem;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-tertiary);background:var(--bg-tertiary);text-align:left;';
+      var thSR = thS + 'text-align:right;';
+      var tdS  = 'padding:0.55rem 0.875rem;font-size:0.875rem;border-bottom:1px solid var(--border-light);';
+      var tdSR = tdS + 'text-align:right;';
+
+      var showProdHeaders = !selectedProducerId; // show producer sub-headers only in "all plantations" mode
+
+      var thead = '<thead><tr>' +
+        '<th style="' + thS  + 'border-radius:8px 0 0 0;">' + (showProdHeaders ? 'Producer / Varietal' : 'Varietal') + '</th>' +
+        '<th style="' + thSR + '">Entries</th>' +
+        '<th style="' + thSR + '">Qty Recorded</th>' +
+        '<th style="' + thSR + 'border-radius:0 8px 0 0;">Total Qty (kg)</th>' +
+      '</tr></thead>';
+
+      var tbody = '<tbody>';
+      rows.forEach(function(r, ri) {
+        if (showProdHeaders) {
+          tbody += '<tr style="background:var(--accent-green-light);">' +
+            '<td colspan="4" style="padding:0.45rem 0.875rem;font-size:0.8rem;font-weight:700;color:var(--accent-green);' +
+              'border-bottom:1px solid var(--border-light);">🌿 ' + r.prod.name + '</td>' +
+          '</tr>';
+        }
+        r.varRows.forEach(function(vr, vi) {
+          var bg = (ri + vi) % 2 === 0 ? 'background:var(--bg-secondary);' : 'background:var(--bg-primary);';
+          var qtyCell = vr.totalKg > 0
+            ? '<strong>' + vr.totalKg.toFixed(1).replace(/\.0$/, '') + ' kg</strong>'
+            : '<span style="color:var(--border-medium);">—</span>';
+          var qtyNote = vr.withQty < vr.entryCount
+            ? '<span style="font-size:0.75rem;color:var(--text-tertiary);"> (' + vr.withQty + ' of ' + vr.entryCount + ')</span>'
+            : '<span style="font-size:0.75rem;color:var(--text-tertiary);"> (' + vr.withQty + '/' + vr.entryCount + ')</span>';
+          tbody +=
+            '<tr style="' + bg + '">' +
+              '<td style="' + tdS + (showProdHeaders ? 'padding-left:1.75rem;' : '') + '">' + vr.name + '</td>' +
+              '<td style="' + tdSR + '">' + vr.entryCount + '</td>' +
+              '<td style="' + tdSR + '">' + vr.withQty + ' of ' + vr.entryCount + '</td>' +
+              '<td style="' + tdSR + '">' + qtyCell + '</td>' +
+            '</tr>';
+        });
+      });
+
+      // Grand total footer
+      var grandQty = grandKg > 0
+        ? '<strong style="color:var(--accent-green);font-size:1rem;">' + grandKg.toFixed(1).replace(/\.0$/, '') + ' kg</strong>'
+        : '<span style="color:var(--border-medium);">—</span>';
+      tbody +=
+        '<tr style="background:var(--accent-green-light);border-top:2px solid var(--accent-green);">' +
+          '<td style="padding:0.6rem 0.875rem;font-weight:700;font-size:0.875rem;color:var(--accent-green);">Total</td>' +
+          '<td style="' + tdSR + 'font-weight:700;color:var(--accent-green);">' + grandEntries + '</td>' +
+          '<td style="' + tdSR + 'font-weight:700;color:var(--accent-green);">' + grandWithQty + ' of ' + grandEntries + '</td>' +
+          '<td style="' + tdSR + '">' + grandQty + '</td>' +
+        '</tr>';
+      tbody += '</tbody>';
+
+      out.innerHTML =
+        '<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border-light);">' +
+        '<table style="width:100%;border-collapse:collapse;min-width:360px;">' +
+        thead + tbody + '</table></div>';
+    }
+
     window.clearAllGvFilters = function() {
       var pFilter = document.getElementById('gvPlantationFilter');
       if (pFilter) pFilter.value = '';
@@ -4892,19 +5086,23 @@
           var all = Array.from(container.querySelectorAll('input[type="checkbox"]'));
           if (selectAll) selectAll.checked = all.every(function(c) { return c.checked; });
           renderGvTable();
+          if (gvSummaryOpen) renderGvSummary();
         });
       });
       renderGvTable();
+      if (gvSummaryOpen) renderGvSummary();
     }
 
     document.getElementById('gvPlantationFilter').addEventListener('change', function() {
       buildGvVarietalCheckboxes(this.value);
+      if (gvSummaryOpen) renderGvSummary();
     });
 
     document.getElementById('gvSelectAllVarietals').addEventListener('change', function() {
       document.querySelectorAll('#gvVarietalCheckboxes input[type="checkbox"]')
         .forEach(function(cb) { cb.checked = document.getElementById('gvSelectAllVarietals').checked; });
       renderGvTable();
+      if (gvSummaryOpen) renderGvSummary();
     });
 
     ['gvShipFromMonth','gvShipFromYear','gvShipToMonth','gvShipToYear'].forEach(function(id) {
@@ -4917,6 +5115,17 @@
       });
       this.style.display = 'none';
       renderGvTable();
+    });
+
+    ['gvSumFromMonth','gvSumFromYear','gvSumToMonth','gvSumToYear'].forEach(function(id) {
+      document.getElementById(id).addEventListener('change', function() { if (gvSummaryOpen) renderGvSummary(); });
+      document.getElementById(id).addEventListener('input',  function() { if (gvSummaryOpen) renderGvSummary(); });
+    });
+    document.getElementById('gvSumClearBtn').addEventListener('click', function() {
+      ['gvSumFromMonth','gvSumFromYear','gvSumToMonth','gvSumToYear'].forEach(function(id) {
+        document.getElementById(id).value = '';
+      });
+      renderGvSummary();
     });
 
     populateGvPlantationFilter();
