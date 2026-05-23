@@ -2726,7 +2726,7 @@
     // Build the main row + expandable crop entries sub-row for one SKU
     function buildSkuRows(sku, idx) {
       var entries = cropEntries.filter(function(e) { return e.skuId === sku.id; })
-        .sort(function(a, b) { return (a.cropYear + a.cropMonth).localeCompare(b.cropYear + b.cropMonth); });
+        .sort(function(a, b) { return (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth); });
       var entryCount    = entries.length;
       var displayStatus = sku.status === 'active' ? 'live' : sku.status;
       var canAdd        = displayStatus === 'live';
