@@ -1226,9 +1226,27 @@
             padding:0.6rem 1rem;margin-bottom:1.25rem;display:inline-block;">
             ☕ To add a new producer section here, add the producer first in the Coffee SKUs tab.
           </p>
-          <div class="search-box" style="margin-bottom:1.25rem;">
+          <div class="search-box" style="margin-bottom:1rem;">
             <span class="search-icon">🔍</span>
             <input type="text" id="gvSearch" placeholder="Search by producer or varietal name…">
+          </div>
+          <!-- Plantation filter -->
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+            <label style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);white-space:nowrap;">Filter by Plantation:</label>
+            <select id="gvPlantationFilter" style="min-width:200px;max-width:320px;">
+              <option value="">— All Plantations —</option>
+            </select>
+          </div>
+          <!-- Varietal checkbox filter — shown only when a plantation is selected -->
+          <div id="gvVarietalFilterPanel" style="display:none;background:var(--bg-tertiary);border:1px solid var(--border-light);border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem;">
+              <span style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Show Varietals</span>
+              <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.8rem;color:var(--accent-green);font-weight:600;cursor:pointer;">
+                <input type="checkbox" id="gvSelectAllVarietals" checked style="cursor:pointer;accent-color:var(--accent-green);">
+                All
+              </label>
+            </div>
+            <div id="gvVarietalCheckboxes" style="display:flex;flex-wrap:wrap;gap:0.5rem 1.25rem;"></div>
           </div>
           <div id="gvTableContainer"></div>
         </div>
@@ -2975,10 +2993,26 @@
     function renderGvTable() {
       const container  = document.getElementById('gvTableContainer');
       if (!container) return;
-      const searchTerm = (document.getElementById('gvSearch') ? document.getElementById('gvSearch').value : '').toLowerCase();
+      const searchTerm        = (document.getElementById('gvSearch') ? document.getElementById('gvSearch').value : '').toLowerCase();
+      const plantationFilterEl = document.getElementById('gvPlantationFilter');
+      const selectedProducerId = plantationFilterEl ? plantationFilterEl.value : '';
+
+      // Collect checked varietal IDs from the checkbox panel
+      var checkedVarietalIds = null; // null = no filter active
+      if (selectedProducerId) {
+        const checkboxes = document.querySelectorAll('#gvVarietalCheckboxes input[type="checkbox"]');
+        if (checkboxes.length > 0) {
+          checkedVarietalIds = [];
+          checkboxes.forEach(function(cb) { if (cb.checked) checkedVarietalIds.push(cb.value); });
+        }
+      }
 
       // Show all non-archived producers as sections; archived producers are hidden
-      const activeProducers = producers.filter(function(p) { return p.status !== 'archived'; });
+      var activeProducers = producers.filter(function(p) { return p.status !== 'archived'; });
+      // If plantation filter active, show only that producer's section
+      if (selectedProducerId) {
+        activeProducers = activeProducers.filter(function(p) { return p.id === selectedProducerId; });
+      }
 
       if (activeProducers.length === 0) {
         container.innerHTML =
@@ -2988,8 +3022,9 @@
         return;
       }
 
-      // Filter varietals by search term
+      // Filter varietals by search term and varietal checkbox selection
       const filteredVarietals = greenVarietals.filter(function(gv) {
+        if (checkedVarietalIds !== null && !checkedVarietalIds.includes(gv.id)) return false;
         if (!searchTerm) return true;
         const prod = producers.find(function(p) { return p.id === gv.producerId; });
         return (gv.name || '').toLowerCase().includes(searchTerm) ||
@@ -4397,6 +4432,63 @@
     document.getElementById('cancelGvBtn').addEventListener('click',          closeGvModal);
     document.getElementById('confirmGvBtn').addEventListener('click',         saveGv);
     document.getElementById('gvSearch').addEventListener('input',             renderGvTable);
+
+    // Plantation filter — populate dropdown, then build varietal checkboxes on change
+    function populateGvPlantationFilter() {
+      var sel = document.getElementById('gvPlantationFilter');
+      if (!sel) return;
+      var current = sel.value;
+      sel.innerHTML = '<option value="">— All Plantations —</option>' +
+        producers.filter(function(p) { return p.status !== 'archived'; })
+          .map(function(p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('');
+      sel.value = current; // restore selection if producer list refreshed
+    }
+
+    function buildGvVarietalCheckboxes(producerId) {
+      var panel      = document.getElementById('gvVarietalFilterPanel');
+      var container  = document.getElementById('gvVarietalCheckboxes');
+      var selectAll  = document.getElementById('gvSelectAllVarietals');
+      if (!panel || !container) return;
+      if (!producerId) { panel.style.display = 'none'; renderGvTable(); return; }
+
+      var pVarietals = greenVarietals
+        .filter(function(gv) { return gv.producerId === producerId; })
+        .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+      container.innerHTML = pVarietals.map(function(gv) {
+        return '<label style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;' +
+          'color:var(--text-primary);cursor:pointer;white-space:nowrap;">' +
+          '<input type="checkbox" value="' + gv.id + '" checked ' +
+            'style="cursor:pointer;accent-color:var(--accent-green);">' +
+          gv.name +
+          '</label>';
+      }).join('');
+
+      if (selectAll) selectAll.checked = true;
+      panel.style.display = pVarietals.length ? 'block' : 'none';
+
+      // Individual checkbox → re-render + sync "All" state
+      container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+          var all = Array.from(container.querySelectorAll('input[type="checkbox"]'));
+          if (selectAll) selectAll.checked = all.every(function(c) { return c.checked; });
+          renderGvTable();
+        });
+      });
+      renderGvTable();
+    }
+
+    document.getElementById('gvPlantationFilter').addEventListener('change', function() {
+      buildGvVarietalCheckboxes(this.value);
+    });
+
+    document.getElementById('gvSelectAllVarietals').addEventListener('change', function() {
+      document.querySelectorAll('#gvVarietalCheckboxes input[type="checkbox"]')
+        .forEach(function(cb) { cb.checked = document.getElementById('gvSelectAllVarietals').checked; });
+      renderGvTable();
+    });
+
+    populateGvPlantationFilter();
     document.getElementById('gvModal').addEventListener('click', e => {
       if (e.target.id === 'gvModal') closeGvModal();
     });
@@ -4555,6 +4647,7 @@
         renderProducerTable();
         updateSkuSelect();
         renderSkuTable();
+        populateGvPlantationFilter();
         renderGvTable();
       });
       // SKUs + crop entries
