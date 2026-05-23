@@ -5189,13 +5189,21 @@
       if (e.target.id === 'gvPriceModal') closeGvPriceModal();
     });
 
-    // Auto-fill green coffee price when a SKU is chosen in the calculator
+    // Auto-fill green coffee price + target price when a SKU is chosen in the calculator
     function onSkuSelected(size) {
       const sfx     = size === '250g' ? '250' : '';
       const entryId = document.getElementById('sku' + sfx).value;
       const entry   = cropEntries.find(e => e.id === entryId);
       if (entry && entry.baseGreenPrice) {
         document.getElementById('greenCoffeePrice' + sfx).value = entry.baseGreenPrice;
+        // Auto-fill Target Price from stored final release price
+        // cropEntry.finalReleasePrice is ₹/kg; 250g tab target is ₹/250g bag so divide by 4
+        if (entry.finalReleasePrice) {
+          const targetVal = size === '250g'
+            ? Math.round(parseFloat(entry.finalReleasePrice) / 4)
+            : parseFloat(entry.finalReleasePrice);
+          document.getElementById('targetPrice' + sfx).value = targetVal;
+        }
         calculate(size);
       }
     }
