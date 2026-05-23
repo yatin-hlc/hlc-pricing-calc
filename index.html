@@ -4440,7 +4440,7 @@
       var current = sel.value;
       sel.innerHTML = '<option value="">— All Plantations —</option>' +
         producers.filter(function(p) { return p.status !== 'archived'; })
-          .map(function(p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('');
+          .map(function(p, i) { return '<option value="' + p.id + '">' + (i + 1) + '. ' + p.name + '</option>'; }).join('');
       sel.value = current; // restore selection if producer list refreshed
     }
 
