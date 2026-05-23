@@ -1364,6 +1364,42 @@
             </div>
             <div id="ptVarietalCheckboxes" style="display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;"></div>
           </div>
+          <!-- Date range filter -->
+          <div style="margin-top:1rem;border-top:1px solid var(--border-light);padding-top:1rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+              <label style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Filter by Date Range</label>
+              <button id="ptClearDateFilter" style="display:none;font-size:0.75rem;color:var(--accent-green);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;padding:0;">✕ Clear</button>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:0.75rem;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem;">From</div>
+                <div style="display:flex;gap:0.5rem;">
+                  <select id="ptDateFromMonth" style="font-family:inherit;font-size:0.875rem;">
+                    <option value="">Month</option>
+                    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                  </select>
+                  <input type="number" id="ptDateFromYear" placeholder="Year" min="2000" max="2099" style="font-family:inherit;font-size:0.875rem;width:80px;">
+                </div>
+              </div>
+              <div style="font-size:1.1rem;color:var(--text-tertiary);padding-bottom:0.4rem;">→</div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem;">To</div>
+                <div style="display:flex;gap:0.5rem;">
+                  <select id="ptDateToMonth" style="font-family:inherit;font-size:0.875rem;">
+                    <option value="">Month</option>
+                    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                  </select>
+                  <input type="number" id="ptDateToYear" placeholder="Year" min="2000" max="2099" style="font-family:inherit;font-size:0.875rem;width:80px;">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="card" style="position:relative;min-height:320px;">
@@ -4025,6 +4061,16 @@
         ptCbs.forEach(function(cb) { if (cb.checked) checkedPtVarietalIds.push(cb.value); });
       }
 
+      // Read date range filter
+      var ptDFM = (document.getElementById('ptDateFromMonth') || {}).value || '';
+      var ptDFY = ((document.getElementById('ptDateFromYear') || {}).value || '').trim();
+      var ptDTM = (document.getElementById('ptDateToMonth')   || {}).value || '';
+      var ptDTY = ((document.getElementById('ptDateToYear')   || {}).value || '').trim();
+      var ptDateFrom = (ptDFM && ptDFY && ptDFY.length === 4) ? ptDFY + ptDFM : '';
+      var ptDateTo   = (ptDTM && ptDTY && ptDTY.length === 4) ? ptDTY + ptDTM : '';
+      var ptClearBtn = document.getElementById('ptClearDateFilter');
+      if (ptClearBtn) ptClearBtn.style.display = (ptDFM || ptDFY || ptDTM || ptDTY) ? 'inline' : 'none';
+
       // ── Green Varietal datasets ─────────────────────────────────────────
       var producerVarietals = greenVarietals.filter(function(gv) {
         return gv.producerId === producerId;
@@ -4058,6 +4104,13 @@
         seenDates[k] = true;
       });
       var dateKeys = Object.keys(seenDates).sort();
+      if (ptDateFrom || ptDateTo) {
+        dateKeys = dateKeys.filter(function(dk) {
+          if (ptDateFrom && dk < ptDateFrom) return false;
+          if (ptDateTo   && dk > ptDateTo)   return false;
+          return true;
+        });
+      }
       var labels   = dateKeys.map(function(k) { return k.slice(4) + '/' + k.slice(0,4); });
 
       // ── Build datasets ─────────────────────────────────────────────────
@@ -4385,10 +4438,24 @@
       skuCropEntries.forEach(function(e) {
         seenDates[String(e.cropYear).padStart(4,'0') + String(e.cropMonth).padStart(2,'0')] = true;
       });
+      var tDFM = (document.getElementById('ptDateFromMonth') || {}).value || '';
+      var tDFY = ((document.getElementById('ptDateFromYear') || {}).value || '').trim();
+      var tDTM = (document.getElementById('ptDateToMonth')   || {}).value || '';
+      var tDTY = ((document.getElementById('ptDateToYear')   || {}).value || '').trim();
+      var tDateFrom = (tDFM && tDFY && tDFY.length === 4) ? tDFY + tDFM : '';
+      var tDateTo   = (tDTM && tDTY && tDTY.length === 4) ? tDTY + tDTM : '';
+
       var dateKeys = Object.keys(seenDates).sort().reverse();
+      if (tDateFrom || tDateTo) {
+        dateKeys = dateKeys.filter(function(dk) {
+          if (tDateFrom && dk < tDateFrom) return false;
+          if (tDateTo   && dk > tDateTo)   return false;
+          return true;
+        });
+      }
 
       if (dateKeys.length === 0) {
-        container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-tertiary);font-size:0.9rem;">No data to display for current selection.</div>';
+        container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-tertiary);font-size:0.9rem;">No data found for the selected date range.</div>';
         return;
       }
 
@@ -4916,6 +4983,17 @@
 
     document.getElementById('ptProducerFilter').addEventListener('change',  populatePtSkuNameFilter);
     document.getElementById('ptSkuNameFilter').addEventListener('change',   renderPriceChart);
+    ['ptDateFromMonth','ptDateFromYear','ptDateToMonth','ptDateToYear'].forEach(function(id) {
+      document.getElementById(id).addEventListener('change', renderPriceChart);
+      document.getElementById(id).addEventListener('input',  renderPriceChart);
+    });
+    document.getElementById('ptClearDateFilter').addEventListener('click', function() {
+      ['ptDateFromMonth','ptDateFromYear','ptDateToMonth','ptDateToYear'].forEach(function(id) {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('ptClearDateFilter').style.display = 'none';
+      renderPriceChart();
+    });
 
     // ============================================
     // EVENT LISTENERS — Settings
