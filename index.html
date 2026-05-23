@@ -1250,19 +1250,37 @@
           </div>
           <!-- Shipment date range filter -->
           <div style="margin-bottom:1.25rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
               <label style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Filter by Shipment Date</label>
-              <button id="gvClearShipmentFilter" style="display:none;font-size:0.75rem;color:var(--accent-green);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;padding:0;">Clear</button>
+              <button id="gvClearShipmentFilter" style="display:none;font-size:0.75rem;color:var(--accent-green);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;padding:0;">✕ Clear</button>
             </div>
-            <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
-              <div style="display:flex;flex-direction:column;gap:0.25rem;">
-                <span style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">From</span>
-                <input type="month" id="gvShipmentFrom" style="font-family:inherit;font-size:0.875rem;padding:0.45rem 0.75rem;border:1.5px solid var(--border-light);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;">
+            <div style="display:flex;align-items:flex-end;gap:0.75rem;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem;">From</div>
+                <div style="display:flex;gap:0.5rem;">
+                  <select id="gvShipFromMonth" style="font-family:inherit;font-size:0.875rem;">
+                    <option value="">Month</option>
+                    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                  </select>
+                  <input type="number" id="gvShipFromYear" placeholder="Year" min="2000" max="2099" style="font-family:inherit;font-size:0.875rem;width:80px;">
+                </div>
               </div>
-              <div style="font-size:1rem;color:var(--text-tertiary);margin-top:1.1rem;">→</div>
-              <div style="display:flex;flex-direction:column;gap:0.25rem;">
-                <span style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">To</span>
-                <input type="month" id="gvShipmentTo" style="font-family:inherit;font-size:0.875rem;padding:0.45rem 0.75rem;border:1.5px solid var(--border-light);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;">
+              <div style="font-size:1.1rem;color:var(--text-tertiary);padding-bottom:0.4rem;">→</div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem;">To</div>
+                <div style="display:flex;gap:0.5rem;">
+                  <select id="gvShipToMonth" style="font-family:inherit;font-size:0.875rem;">
+                    <option value="">Month</option>
+                    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                  </select>
+                  <input type="number" id="gvShipToYear" placeholder="Year" min="2000" max="2099" style="font-family:inherit;font-size:0.875rem;width:80px;">
+                </div>
               </div>
             </div>
           </div>
@@ -3015,13 +3033,15 @@
       const plantationFilterEl = document.getElementById('gvPlantationFilter');
       const selectedProducerId = plantationFilterEl ? plantationFilterEl.value : '';
 
-      // Shipment date range filter (values are "YYYY-MM" or empty)
-      const shipFromVal = (document.getElementById('gvShipmentFrom') || {}).value || '';
-      const shipToVal   = (document.getElementById('gvShipmentTo')   || {}).value || '';
-      const shipFromKey = shipFromVal ? shipFromVal.replace('-', '') : ''; // "YYYYMM"
-      const shipToKey   = shipToVal   ? shipToVal.replace('-', '')   : '';
+      // Shipment date range filter
+      const sfm = (document.getElementById('gvShipFromMonth') || {}).value || '';
+      const sfy = ((document.getElementById('gvShipFromYear') || {}).value || '').trim();
+      const stm = (document.getElementById('gvShipToMonth')   || {}).value || '';
+      const sty = ((document.getElementById('gvShipToYear')   || {}).value || '').trim();
+      const shipFromKey = (sfm && sfy && sfy.length === 4) ? sfy + sfm : ''; // "YYYYMM"
+      const shipToKey   = (stm && sty && sty.length === 4) ? sty + stm : '';
       const clearBtn    = document.getElementById('gvClearShipmentFilter');
-      if (clearBtn) clearBtn.style.display = (shipFromVal || shipToVal) ? 'inline' : 'none';
+      if (clearBtn) clearBtn.style.display = (sfm || sfy || stm || sty) ? 'inline' : 'none';
 
       // Collect checked varietal IDs from the checkbox panel
       var checkedVarietalIds = null; // null = no filter active
@@ -4524,11 +4544,14 @@
       renderGvTable();
     });
 
-    document.getElementById('gvShipmentFrom').addEventListener('change', renderGvTable);
-    document.getElementById('gvShipmentTo').addEventListener('change',   renderGvTable);
+    ['gvShipFromMonth','gvShipFromYear','gvShipToMonth','gvShipToYear'].forEach(function(id) {
+      document.getElementById(id).addEventListener('change', renderGvTable);
+      document.getElementById(id).addEventListener('input',  renderGvTable);
+    });
     document.getElementById('gvClearShipmentFilter').addEventListener('click', function() {
-      document.getElementById('gvShipmentFrom').value = '';
-      document.getElementById('gvShipmentTo').value   = '';
+      ['gvShipFromMonth','gvShipFromYear','gvShipToMonth','gvShipToYear'].forEach(function(id) {
+        document.getElementById(id).value = '';
+      });
       this.style.display = 'none';
       renderGvTable();
     });
