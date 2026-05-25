@@ -2040,7 +2040,7 @@
 
     // Bulk tier discounts — 1 kg
     let bulkTierDiscounts    = loadData('bulkTierDiscounts',    { tier1: 5, tier2: 8, tier3: 12 });
-    // tier1=5–10 units, tier2=11–24 units, tier3=25+ units
+    // tier1=5–10 KG, tier2=11–24 KG, tier3=25+ KG
     // Bulk tier discounts — 250 g
     let bulkTierDiscounts250 = loadData('bulkTierDiscounts250', { tier1: 10, tier2: 15 });
     // tier1=12+ bags (3 kg+), tier2=20+ bags (5 kg+)
@@ -4076,10 +4076,10 @@
     // ============================================
 
     const BULK_TIERS_1KG = [
-      { label: '1–4 units (standard)', tierKey: null },
-      { label: '5–10 units',           tierKey: 'tier1' },
-      { label: '11–24 units',          tierKey: 'tier2' },
-      { label: '25+ units',            tierKey: 'tier3' }
+      { label: '1–4 KG (standard)', tierKey: null },
+      { label: '5–10 KG',           tierKey: 'tier1' },
+      { label: '11–24 KG',          tierKey: 'tier2' },
+      { label: '25+ KG',            tierKey: 'tier3' }
     ];
     const BULK_TIERS_250G = [
       { label: '1–11 bags (standard)', tierKey: null },
