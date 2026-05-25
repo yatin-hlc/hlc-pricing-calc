@@ -2982,15 +2982,24 @@
       buildSkuDdPanel('skuDd',    liveProducers);
       buildSkuDdPanel('skuDd250', liveProducers);
 
-      // History filter — list all crop entries
+      // History filter — list only active SKUs + active crop entries, newest first
       const logFilter = document.getElementById('logFilterSku');
+      const cur = logFilter.value;
+      const activeCropEntries = cropEntries
+        .filter(e => {
+          if (e.status === 'inactive') return false;
+          const sku = skus.find(s => s.id === e.skuId);
+          return sku && (sku.status === 'live' || sku.status === 'active');
+        })
+        .sort((a, b) => (b.cropYear + b.cropMonth).localeCompare(a.cropYear + a.cropMonth));
       logFilter.innerHTML = '<option value="">All Coffee SKUs</option>' +
-        cropEntries.map(e => {
+        activeCropEntries.map((e, i) => {
           const sku  = skus.find(s => s.id === e.skuId);
           const prod = sku ? producers.find(p => p.id === sku.producerId) : null;
-          const label = (prod ? prod.name + ' — ' : '') + (sku ? sku.name + ' ' : '') + e.cropMonth + '/' + e.cropYear;
+          const label = (i + 1) + '. ' + (prod ? prod.name + ' — ' : '') + (sku ? sku.name + ' ' : '') + e.cropMonth + '/' + e.cropYear;
           return `<option value="${e.id}">${label}</option>`;
         }).join('');
+      if (cur) logFilter.value = cur; // restore selection if still valid
 
       populatePtProducerFilter();
     }
