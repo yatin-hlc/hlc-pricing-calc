@@ -1032,13 +1032,13 @@
                     <thead>
                       <tr style="border-bottom:2px solid var(--border-medium);">
                         <th style="text-align:left;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Quantity</th>
-                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / bag</th>
                         <th style="text-align:center;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Discount %</th>
+                        <th style="text-align:right;padding:0.4rem 0.5rem;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;">Price / bag</th>
                       </tr>
                     </thead>
                     <tbody id="bulkTiersBody250"></tbody>
                   </table>
-                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Price is editable — discount calculated automatically.</div>
+                  <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-tertiary);">Discount % is editable — changes save automatically.</div>
                 </div>
               </div>
             </div>
@@ -4120,22 +4120,42 @@
         const disc   = tier.tierKey ? (discObj[tier.tierKey] || 0) : 0;
         const price  = basePrice * (1 - disc / 100);
         const isBase = !tier.tierKey;
-        const priceCell = isBase
-          ? '<td style="text-align:right;padding:0.45rem 0.5rem;font-weight:500;color:var(--text-secondary);font-variant-numeric:tabular-nums;">₹' + price.toFixed(2) + '/' + unit + '</td>'
-          : '<td style="text-align:right;padding:0.45rem 0.5rem;">'
-            + '<input type="number" min="0" step="0.5" value="' + price.toFixed(2) + '" '
-            + 'style="width:88px;text-align:right;border:1.5px solid var(--border-medium);border-radius:4px;padding:0.2rem 0.4rem;font-size:0.8rem;font-family:inherit;font-weight:700;background:var(--bg-secondary);color:var(--accent-coffee);" '
-            + 'onchange="updateTierPrice(\'' + tier.tierKey + '\',this.value,\'' + size + '\')" />'
-            + '<span style="font-size:0.75rem;color:var(--text-secondary);margin-left:2px;">/' + unit + '</span>'
-            + '</td>';
-        const discDisplay = isBase
-          ? '<td style="text-align:center;padding:0.45rem 0.5rem;color:var(--text-tertiary);">—</td>'
-          : '<td style="text-align:center;padding:0.45rem 0.5rem;color:var(--text-secondary);font-size:0.8rem;">' + (disc > 0 ? disc.toFixed(1) + '%' : '—') + '</td>';
-        return '<tr style="border-bottom:1px solid var(--border-light);">'
-          + '<td style="padding:0.45rem 0.5rem;color:' + (isBase ? 'var(--text-secondary)' : 'var(--text-primary)') + ';font-weight:' + (isBase ? '400' : '500') + ';">' + tier.label + '</td>'
-          + priceCell
-          + discDisplay
-          + '</tr>';
+
+        if (size === '250g') {
+          // 250g: discount % is editable input, price is calculated display
+          const discCell = isBase
+            ? '<td style="text-align:center;padding:0.45rem 0.5rem;color:var(--text-tertiary);">—</td>'
+            : '<td style="text-align:center;padding:0.45rem 0.5rem;">'
+              + '<input type="number" min="0" max="50" step="0.5" value="' + disc + '" '
+              + 'style="width:60px;text-align:center;border:1px solid var(--border-medium);border-radius:4px;padding:0.2rem 0.3rem;font-size:0.8rem;font-family:inherit;background:var(--bg-secondary);color:var(--text-primary);" '
+              + 'onchange="updateTierDiscount(\'' + tier.tierKey + '\',this.value,\'' + size + '\')" />'
+              + '</td>';
+          return '<tr style="border-bottom:1px solid var(--border-light);">'
+            + '<td style="padding:0.45rem 0.5rem;color:' + (isBase ? 'var(--text-secondary)' : 'var(--text-primary)') + ';font-weight:' + (isBase ? '400' : '500') + ';">' + tier.label + '</td>'
+            + discCell
+            + '<td style="text-align:right;padding:0.45rem 0.5rem;font-weight:' + (isBase ? '500' : '700') + ';color:' + (isBase ? 'var(--text-secondary)' : 'var(--accent-coffee)') + ';font-variant-numeric:tabular-nums;">'
+            + '₹' + price.toFixed(2) + '/' + unit
+            + '</td>'
+            + '</tr>';
+        } else {
+          // 1kg: price is editable input, discount % is calculated display
+          const priceCell = isBase
+            ? '<td style="text-align:right;padding:0.45rem 0.5rem;font-weight:500;color:var(--text-secondary);font-variant-numeric:tabular-nums;">₹' + price.toFixed(2) + '/' + unit + '</td>'
+            : '<td style="text-align:right;padding:0.45rem 0.5rem;">'
+              + '<input type="number" min="0" step="0.5" value="' + price.toFixed(2) + '" '
+              + 'style="width:88px;text-align:right;border:1.5px solid var(--border-medium);border-radius:4px;padding:0.2rem 0.4rem;font-size:0.8rem;font-family:inherit;font-weight:700;background:var(--bg-secondary);color:var(--accent-coffee);" '
+              + 'onchange="updateTierPrice(\'' + tier.tierKey + '\',this.value,\'' + size + '\')" />'
+              + '<span style="font-size:0.75rem;color:var(--text-secondary);margin-left:2px;">/' + unit + '</span>'
+              + '</td>';
+          const discDisplay = isBase
+            ? '<td style="text-align:center;padding:0.45rem 0.5rem;color:var(--text-tertiary);">—</td>'
+            : '<td style="text-align:center;padding:0.45rem 0.5rem;color:var(--text-secondary);font-size:0.8rem;">' + (disc > 0 ? disc.toFixed(1) + '%' : '—') + '</td>';
+          return '<tr style="border-bottom:1px solid var(--border-light);">'
+            + '<td style="padding:0.45rem 0.5rem;color:' + (isBase ? 'var(--text-secondary)' : 'var(--text-primary)') + ';font-weight:' + (isBase ? '400' : '500') + ';">' + tier.label + '</td>'
+            + priceCell
+            + discDisplay
+            + '</tr>';
+        }
       }).join('');
     }
 
